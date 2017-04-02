@@ -27,14 +27,14 @@ do {
 
 ## Installation
 
-### In a script
+### For scripts
 
 - Install [Marathon](https://github.com/johnsundell/marathon).
 - Add ShellOut to Marathon using `$ marathon add git@github.com:JohnSundell/ShellOut.git`.
 - Alternatively, add `git@github.com:JohnSundell/ShellOut.git` to your `Marathonfile`.
 - Write your script, then run it using `$ marathon run yourScript.swift`.
 
-### In a command line tool
+### For command line tools
 
 - Add `.Package(url: "https://github.com/JohnSundell/ShellOut.git", majorVersion: 1)` to your `Package.swift` file.
 - Update your packages using `$ swift package update`.

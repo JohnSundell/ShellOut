@@ -23,9 +23,9 @@ import Foundation
 // Error type thrown by the `shellOut()` function, in case the given command failed
 public struct ShellOutError: Swift.Error {
     /// The error message that was returned through `STDERR`
-    let message: String
+    public let message: String
     /// Any output that was put in `STDOUT` despite the error being thrown
-    let output: String
+    public let output: String
 }
 
 // MARK: - Private

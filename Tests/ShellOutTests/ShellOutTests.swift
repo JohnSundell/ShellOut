@@ -1,5 +1,5 @@
 import XCTest
-@testable import ShellOut
+import ShellOut
 
 class ShellOutTests: XCTestCase {
     func testWithoutArguments() throws {

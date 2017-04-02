@@ -1,7 +1,7 @@
 
 # 🐚 ShellOut
 
-Welcome to ShellOut, a simple Swift package that enables you to easily “shell out” from a Swift script or command line tool.
+Welcome to ShellOut, a simple package that enables you to easily “shell out” from a Swift script or command line tool.
 
 Even though you can accomplish most of the tasks you need to do in native Swift code, sometimes you need to invoke the power of the command line from a script or tool - and this is exactly what ShellOut makes so simple.
 

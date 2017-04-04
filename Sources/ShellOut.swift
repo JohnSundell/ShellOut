@@ -18,7 +18,7 @@ import Foundation
  *  - throws: `ShellOutError` in case the command couldn't be performed, or it returned an error
  *
  *  Use this function to "shell out" in a Swift script or command line tool
- *  For example: `shellOut(to: "mkdir", arguments: "NewFolder")`
+ *  For example: `shellOut(to: "mkdir", arguments: ["NewFolder"])`
  */
 @discardableResult public func shellOut(to command: String, arguments: [String] = []) throws -> String {
     let process = Process()

@@ -13,17 +13,37 @@ import Foundation
  *
  *  - parameter command: The command to run
  *  - parameter arguments: The arguments to pass to the command
+ *  - parameter path: The path to execute the commands at (defaults to current folder)
  *
  *  - returns: The output of running the command
  *  - throws: `ShellOutError` in case the command couldn't be performed, or it returned an error
  *
  *  Use this function to "shell out" in a Swift script or command line tool
- *  For example: `shellOut(to: "mkdir", arguments: ["NewFolder"])`
+ *  For example: `shellOut(to: "mkdir", arguments: ["NewFolder"], at: "~/CurrentFolder")`
  */
-@discardableResult public func shellOut(to command: String, arguments: [String] = []) throws -> String {
+@discardableResult public func shellOut(to command: String,
+                                        arguments: [String] = [],
+                                        at path: String = ".") throws -> String {
     let process = Process()
-    let command = "\(command) \(arguments.joined(separator: " "))"
+    let command = "cd \"\(path)\" && \(command) \(arguments.joined(separator: " "))"
     return try process.launchBash(with: command)
+}
+
+/**
+ *  Run a series of shell commands using Bash
+ *
+ *  - parameter commands: The commands to run
+ *  - parameter path: The path to execute the commands at (defaults to current folder)
+ *
+ *  - returns: The output of running the command
+ *  - throws: `ShellOutError` in case the command couldn't be performed, or it returned an error
+ *
+ *  Use this function to "shell out" in a Swift script or command line tool
+ *  For example: `shellOut(to: ["mkdir NewFolder", "cd NewFolder"], at: "~/CurrentFolder")`
+ */
+@discardableResult public func shellOut(to commands: [String], at path: String = ".") throws -> String {
+    let command = commands.joined(separator: " && ")
+    return try shellOut(to: command, at: path)
 }
 
 // Error type thrown by the `shellOut()` function, in case the given command failed

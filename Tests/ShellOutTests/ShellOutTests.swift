@@ -23,6 +23,35 @@ class ShellOutTests: XCTestCase {
         XCTAssertEqual(echo, "Hello world")
     }
 
+    func testSingleCommandAtPath() throws {
+        try shellOut(to: "echo \"Hello\" > \(NSTemporaryDirectory())ShellOutTests-SingleCommand.txt")
+
+        let textFileContent = try shellOut(to: "cat ShellOutTests-SingleCommand.txt",
+                                           at: NSTemporaryDirectory())
+
+        XCTAssertEqual(textFileContent, "Hello")
+    }
+
+    func testSeriesOfCommands() throws {
+        let echo = try shellOut(to: ["echo \"Hello\"", "echo \"world\""])
+        XCTAssertEqual(echo, "Hello\nworld")
+    }
+
+    func testSeriesOfCommandsAtPath() throws {
+        try shellOut(to: [
+            "cd \(NSTemporaryDirectory())",
+            "mkdir -p ShellOutTests",
+            "echo \"Hello again\" > ShellOutTests/MultipleCommands.txt"
+        ])
+
+        let textFileContent = try shellOut(to: [
+            "cd ShellOutTests",
+            "cat MultipleCommands.txt"
+        ], at: NSTemporaryDirectory())
+
+        XCTAssertEqual(textFileContent, "Hello again")
+    }
+
     func testThrowingError() {
         do {
             try shellOut(to: "cd", arguments: ["notADirectory"])

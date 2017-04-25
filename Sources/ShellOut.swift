@@ -74,10 +74,8 @@ private extension Process {
 
         waitUntilExit()
 
-        if let error = error {
-            if !error.isEmpty {
-                throw ShellOutError(message: error, output: output)
-            }
+        if let error = error, !error.isEmpty {
+            throw ShellOutError(message: error, output: output)
         }
 
         return output

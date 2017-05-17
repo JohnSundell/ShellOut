@@ -59,8 +59,31 @@ class ShellOutTests: XCTestCase {
         } catch let error as ShellOutError {
             XCTAssertTrue(error.message.contains("notADirectory"))
             XCTAssertTrue(error.output.isEmpty)
+            XCTAssertTrue(error.terminationStatus != 0)
         } catch {
             XCTFail("Invalid error type: \(error)")
         }
     }
+
+    func testRedirection() {
+
+        let stdout = Pipe()
+        do {
+            try shellOut(to: "echo", arguments: ["Hello"], redirectStdout: stdout.fileHandleForWriting)
+            let data = stdout.fileHandleForReading.readDataToEndOfFile()
+            XCTAssertTrue(data.count > 0)
+        } catch {
+             XCTFail("Invalid error type: \(error)")
+        }
+
+        let stderr = Pipe()
+        do {
+            try shellOut(to: "echo", arguments: ["Hello", ">>/dev/stderr"], redirectStderr: stderr.fileHandleForWriting)
+            let data = stderr.fileHandleForReading.readDataToEndOfFile()
+            XCTAssertTrue(data.count > 0)
+        } catch {
+            XCTFail("Invalid error type: \(error)")
+        }
+    }
+
 }

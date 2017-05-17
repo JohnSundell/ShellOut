@@ -14,7 +14,8 @@ import Foundation
  *  - parameter command: The command to run
  *  - parameter arguments: The arguments to pass to the command
  *  - parameter path: The path to execute the commands at (defaults to current folder)
- *  - parameter printOutput: Whether `STDERR` and `STDOUT` should be printed.
+ *  - parameter redirectStdout: The `FileHandle` where STDOUT should be redirected to
+ *  - parameter redirectStderr: The `FileHandle` where STDERR should be redirected to
  *
  *  - returns: The output of running the command
  *  - throws: `ShellOutError` in case the command couldn't be performed, or it returned an error
@@ -25,10 +26,10 @@ import Foundation
 @discardableResult public func shellOut(to command: String,
                                         arguments: [String] = [],
                                         at path: String = ".",
-                                        printOutput: Bool = false) throws -> String {
+                                       redirectStdout: FileHandle? = nil, redirectStderr: FileHandle? = nil) throws -> String {
     let process = Process()
     let command = "cd \"\(path)\" && \(command) \(arguments.joined(separator: " "))"
-    return try process.launchBash(with: command, printOutput: printOutput)
+    return try process.launchBash(with: command, redirectStdout: redirectStdout, redirectStderr: redirectStderr)
 }
 
 /**
@@ -36,7 +37,8 @@ import Foundation
  *
  *  - parameter commands: The commands to run
  *  - parameter path: The path to execute the commands at (defaults to current folder)
- *  - parameter printOutput: Whether `STDERR` and `STDOUT` should be printed ot not.
+ *  - parameter redirectStdout: The `FileHandle` where STDOUT should be redirected to
+ *  - parameter redirectStderr: The `FileHandle` where STDERR should be redirected to
  *
  *  - returns: The output of running the command
  *  - throws: `ShellOutError` in case the command couldn't be performed, or it returned an error
@@ -44,9 +46,9 @@ import Foundation
  *  Use this function to "shell out" in a Swift script or command line tool
  *  For example: `shellOut(to: ["mkdir NewFolder", "cd NewFolder"], at: "~/CurrentFolder")`
  */
-@discardableResult public func shellOut(to commands: [String], at path: String = ".", printOutput: Bool = false) throws -> String {
+@discardableResult public func shellOut(to commands: [String], at path: String = ".", redirectStdout: FileHandle? = nil, redirectStderr: FileHandle? = nil) throws -> String {
     let command = commands.joined(separator: " && ")
-    return try shellOut(to: command, at: path, printOutput: printOutput)
+    return try shellOut(to: command, at: path, redirectStdout: redirectStdout, redirectStderr: redirectStderr)
 }
 
 // Error type thrown by the `shellOut()` function, in case the given command failed
@@ -69,7 +71,14 @@ public struct ShellOutError: Swift.Error {
 
 // MARK: - Private
 private extension Process {
-    @discardableResult func launchBash(with command: String, printOutput: Bool = false) throws -> Data {
+
+    private func closeHandle(_ handle: FileHandle?) {
+        if let handle = handle {
+            handle.closeFile()
+        }
+    }
+
+    @discardableResult func launchBash(with command: String, redirectStdout stdout: FileHandle? = nil, redirectStderr stderr: FileHandle? = nil) throws -> Data {
         launchPath = "/bin/bash"
         arguments = ["-c", command]
 
@@ -79,16 +88,16 @@ private extension Process {
         let stdoutHandler: (FileHandle) -> Void = { handler in
             let data = handler.availableData
             stdoutData.append(data)
-            if printOutput {
-                FileHandle.standardOutput.write(data)
+            if let handler = stdout {
+               handler.write(data)
             }
         }
 
         let stderrHandler: (FileHandle) -> Void = { handler in
             let data = handler.availableData
             stderrData.append(data)
-            if printOutput {
-                FileHandle.standardOutput.write(data)
+            if let handler = stderr {
+                handler.write(data)
             }
         }
 
@@ -104,6 +113,10 @@ private extension Process {
 
         waitUntilExit()
 
+        // This is needed to close the file handle at the end. See: `Pipe` documentation
+        closeHandle(stdout)
+        closeHandle(stderr)
+
         if terminationStatus != 0 {
             throw ShellOutError(stderr: stderrData, stdout: stdoutData, terminationStatus: terminationStatus)
         }
@@ -114,8 +127,8 @@ private extension Process {
         return stdoutData
     }
 
-    @discardableResult func launchBash(with command: String, printOutput: Bool = false) throws -> String {
-        return try launchBash(with: command, printOutput: printOutput).shellOutput() ?? ""
+    @discardableResult func launchBash(with command: String, redirectStdout stdout: FileHandle? = nil, redirectStderr stderr: FileHandle? = nil) throws -> String {
+        return try launchBash(with: command, redirectStdout: stdout, redirectStderr: stderr).shellOutput() ?? ""
     }
 
 }

@@ -69,7 +69,7 @@ class ShellOutTests: XCTestCase {
 
         let stdout = Pipe()
         do {
-            try shellOut(to: "echo", arguments: ["Hello"], redirectStdout: stdout.fileHandleForWriting)
+            try shellOut(to: "echo", arguments: ["Hello"], outputHandle: stdout.fileHandleForWriting)
             let data = stdout.fileHandleForReading.readDataToEndOfFile()
             XCTAssertTrue(data.count > 0)
         } catch {
@@ -78,7 +78,7 @@ class ShellOutTests: XCTestCase {
 
         let stderr = Pipe()
         do {
-            try shellOut(to: "echo", arguments: ["Hello", ">>/dev/stderr"], redirectStderr: stderr.fileHandleForWriting)
+            try shellOut(to: "echo", arguments: ["Hello", ">>/dev/stderr"], errorHandle: stderr.fileHandleForWriting)
             let data = stderr.fileHandleForReading.readDataToEndOfFile()
             XCTAssertTrue(data.count > 0)
         } catch {

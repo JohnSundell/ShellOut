@@ -65,25 +65,29 @@ class ShellOutTests: XCTestCase {
         }
     }
 
-    func testRedirection() {
+    func testCapturingOutputWithHandle() throws {
+        let pipe = Pipe()
+        let output = try shellOut(to: "echo", arguments: ["Hello"], outputHandle: pipe.fileHandleForWriting)
+        let capturedData = pipe.fileHandleForReading.readDataToEndOfFile()
+        XCTAssertEqual(output, "Hello")
+        XCTAssertEqual(output + "\n", String(data: capturedData, encoding: .utf8))
+    }
 
-        let stdout = Pipe()
-        do {
-            try shellOut(to: "echo", arguments: ["Hello"], outputHandle: stdout.fileHandleForWriting)
-            let data = stdout.fileHandleForReading.readDataToEndOfFile()
-            XCTAssertTrue(data.count > 0)
-        } catch {
-             XCTFail("Invalid error type: \(error)")
-        }
+    func testCapturingErrorWithHandle() throws {
+        let pipe = Pipe()
 
-        let stderr = Pipe()
         do {
-            try shellOut(to: "echo", arguments: ["Hello", ">>/dev/stderr"], errorHandle: stderr.fileHandleForWriting)
-            let data = stderr.fileHandleForReading.readDataToEndOfFile()
-            XCTAssertTrue(data.count > 0)
+            try shellOut(to: "cd", arguments: ["notADirectory"], errorHandle: pipe.fileHandleForWriting)
+            XCTFail("Expected expression to throw")
+        } catch let error as ShellOutError {
+            XCTAssertTrue(error.message.contains("notADirectory"))
+            XCTAssertTrue(error.output.isEmpty)
+            XCTAssertTrue(error.terminationStatus != 0)
+
+            let capturedData = pipe.fileHandleForReading.readDataToEndOfFile()
+            XCTAssertEqual(error.message + "\n", String(data: capturedData, encoding: .utf8))
         } catch {
             XCTFail("Invalid error type: \(error)")
         }
     }
-
 }

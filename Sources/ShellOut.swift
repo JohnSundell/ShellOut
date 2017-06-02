@@ -105,8 +105,8 @@ private extension Process {
         outputHandle?.closeFile()
         errorHandle?.closeFile()
 
-        FileHandle.standardError.readabilityHandler = nil
-        FileHandle.standardOutput.readabilityHandler = nil
+        outputPipe.fileHandleForReading.readabilityHandler = nil
+        errorPipe.fileHandleForReading.readabilityHandler = nil
 
         if terminationStatus != 0 {
             throw ShellOutError(

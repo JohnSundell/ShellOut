@@ -13,8 +13,10 @@ extension ShellOutTests {
         ("testWithoutArguments", testWithoutArguments),
         ("testWithArguments", testWithArguments),
         ("testWithInlineArguments", testWithInlineArguments),
-        ("testThrowingError", testThrowingError),
-        ("testRedirection", testRedirection)
+        ("testSingleCommandAtPath", testSingleCommandAtPath),
+        ("testSeriesOfCommands", testSeriesOfCommands),
+        ("testSeriesOfCommandsAtPath", testSeriesOfCommandsAtPath),
+        ("testThrowingError", testThrowingError)
     ]
 }
 #endif

@@ -109,8 +109,10 @@ private extension Process {
         outputHandle?.closeFile()
         errorHandle?.closeFile()
 
+        #if !os(Linux)
         outputPipe.fileHandleForReading.readabilityHandler = nil
         errorPipe.fileHandleForReading.readabilityHandler = nil
+        #endif
 
         if terminationStatus != 0 {
             throw ShellOutError(

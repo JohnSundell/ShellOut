@@ -340,6 +340,12 @@ private extension Process {
         #endif
 
         launch()
+
+        #if os(Linux)
+        outputData = outputPipe.fileHandleForReading.readDataToEndOfFile()
+        errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
+        #endif
+
         waitUntilExit()
 
         outputHandle?.closeFile()

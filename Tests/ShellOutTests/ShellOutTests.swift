@@ -101,7 +101,7 @@ class ShellOutTests: XCTestCase {
         let originPath = tempFolderPath + "/GitTestOrigin"
         try shellOut(to: .createFolder(named: "GitTestOrigin"), at: tempFolderPath)
         try shellOut(to: .gitInit(), at: originPath)
-        try shellOut(to: .createFile(named: "Test", withContents: "Hello world"), at: originPath)
+        try shellOut(to: .createFile(named: "Test", contents: "Hello world"), at: originPath)
         try shellOut(to: .gitCommit(message: "Commit"), at: originPath)
 
         // Clone to a new repository and read the file
@@ -113,7 +113,7 @@ class ShellOutTests: XCTestCase {
         XCTAssertEqual(try shellOut(to: .readFile(at: filePath)), "Hello world")
 
         // Make a new commit in the origin repository
-        try shellOut(to: .createFile(named: "Test", withContents: "Hello again"), at: originPath)
+        try shellOut(to: .createFile(named: "Test", contents: "Hello again"), at: originPath)
         try shellOut(to: .gitCommit(message: "Commit"), at: originPath)
 
         // Pull the commit in the clone repository and read the file again

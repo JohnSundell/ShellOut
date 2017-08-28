@@ -168,7 +168,7 @@ public extension ShellOutCommand {
     }
 
     /// Create a file with a given name and contents (will overwrite any existing file with the same name)
-    static func createFile(named name: String, withContents contents: String) -> ShellOutCommand {
+    static func createFile(named name: String, contents: String) -> ShellOutCommand {
         var command = "echo"
         command.append(argument: contents)
         command.append(" > ")

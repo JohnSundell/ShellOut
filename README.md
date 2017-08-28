@@ -7,7 +7,7 @@ Even though you can accomplish most of the tasks you need to do in native Swift 
 
 ## Usage
 
- Just call `shellOut()`, and specify what command you want to run, along with any arguments you want to pass:
+Just call `shellOut()`, and specify what command you want to run, along with any arguments you want to pass:
 
 ```swift
 let output = try shellOut(to: "echo", arguments: ["Hello world"])
@@ -31,6 +31,68 @@ do {
     print(error.output) // Prints STDOUT
 }
 ```
+
+## Pre-defined commands
+
+Another way to use ShellOut is by executing pre-defined commands, that enable you to easily perform common tasks without having to construct commands using strings. It also ships with a set of such pre-defined commands for common tasks, such as using Git, manipulating the file system and using tools like [Marathon](https://github.com/JohnSundell/Marathon), [CocoaPods](https://cocoapods.org) and [Fastlane](https://fastlane.tools).
+
+### Use Git
+
+```swift
+try shellOut(to: .gitInit())
+try shellOut(to: .gitClone(url: repositoryURL))
+try shellOut(to: .gitCommit(message: "A scripted commit!"))
+try shellOut(to: .gitPush())
+try shellOut(to: .gitPull(remote: "origin", branch: "release"))
+try shellOut(to: .gitSubmoduleUpdate())
+try shellOut(to: .gitCheckout(branch: "my-feature"))
+```
+
+### Handle files, folders and symlinks
+
+```swift
+try shellOut(to: .createFolder(named: "folder"))
+try shellOut(to: .createFile(named: "file", contents: "Hello world"))
+try shellOut(to: .moveFile(from: "path/a", to: "path/b"))
+try shellOut(to: .openFile(at: "Project.xcodeproj"))
+try shellOut(to: .readFile(at: "Podfile"))
+try shellOut(to: .createSymlink(to: "target", at: "link"))
+try shellOut(to: .expandSymlink(at: "link"))
+```
+
+*For a more powerful and object-oriented way to handle Files & Folders in Swift, check out [Files](https://github.com/JohnSundell/Files)*
+
+### Use [Marathon](https://github.com/JohnSundell/Marathon)
+
+```swift
+try shellOut(to: .runMarathonScript(at: "~/scripts/MyScript", arguments: ["One", "Two"]))
+try shellOut(to: .updateMarathonPackages())
+```
+
+### Use [The Swift Package Manager](https://github.com/apple/swift-package-manager)
+
+```swift
+try shellOut(to: .createSwiftPackage(withType: .executable))
+try shellOut(to: .updateSwiftPackages())
+try shellOut(to: .generateSwiftPackageXcodeProject())
+try shellOut(to: .buildSwiftPackage())
+try shellOut(to: .testSwiftPackage())
+```
+
+### Use [Fastlane](https://fastlane.tools)
+
+```swift
+try shellOut(to: .runFastlane(usingLane: "appstore"))
+```
+
+### Use [CocoaPods](https://cocoapods.org)
+
+```swift
+try shellOut(to: .updateCocoaPods())
+try shellOut(to: .installCocoaPods())
+```
+
+Don't see what you're looking for in the list above? You can easily define your own commands using `ShellOutCommand`. If you've made a command you think should be included among the built-in ones, feel free to [open a PR](https://github.com/JohnSundell/ShellOut/pull/new/master)!
 
 ## Installation
 

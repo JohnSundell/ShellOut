@@ -16,7 +16,9 @@ extension ShellOutTests {
         ("testSingleCommandAtPath", testSingleCommandAtPath),
         ("testSeriesOfCommands", testSeriesOfCommands),
         ("testSeriesOfCommandsAtPath", testSeriesOfCommandsAtPath),
-        ("testThrowingError", testThrowingError)
+        ("testThrowingError", testThrowingError),
+        ("testGitCommands", testGitCommands),
+        ("testSwiftPackageManagerCommands", testSwiftPackageManagerCommands)
     ]
 }
 #endif

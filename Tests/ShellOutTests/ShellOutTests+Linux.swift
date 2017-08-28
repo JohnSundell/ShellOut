@@ -13,8 +13,12 @@ extension ShellOutTests {
         ("testWithoutArguments", testWithoutArguments),
         ("testWithArguments", testWithArguments),
         ("testWithInlineArguments", testWithInlineArguments),
+        ("testSingleCommandAtPath", testSingleCommandAtPath),
+        ("testSeriesOfCommands", testSeriesOfCommands),
+        ("testSeriesOfCommandsAtPath", testSeriesOfCommandsAtPath),
         ("testThrowingError", testThrowingError),
-        ("testRedirection", testRedirection)
+        ("testGitCommands", testGitCommands),
+        ("testSwiftPackageManagerCommands", testSwiftPackageManagerCommands)
     ]
 }
 #endif

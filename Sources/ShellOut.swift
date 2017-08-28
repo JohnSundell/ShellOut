@@ -15,7 +15,9 @@ import Foundation
  *  - parameter arguments: The arguments to pass to the command
  *  - parameter path: The path to execute the commands at (defaults to current folder)
  *  - parameter outputHandle: Any `FileHandle` that any output (STDOUT) should be redirected to
+ *              (at the moment this is only supported on macOS)
  *  - parameter errorHandle: Any `FileHandle` that any error output (STDERR) should be redirected to
+ *              (at the moment this is only supported on macOS)
  *
  *  - returns: The output of running the command
  *  - throws: `ShellOutError` in case the command couldn't be performed, or it returned an error
@@ -39,7 +41,9 @@ import Foundation
  *  - parameter commands: The commands to run
  *  - parameter path: The path to execute the commands at (defaults to current folder)
  *  - parameter outputHandle: Any `FileHandle` that any output (STDOUT) should be redirected to
+ *              (at the moment this is only supported on macOS)
  *  - parameter errorHandle: Any `FileHandle` that any error output (STDERR) should be redirected to
+ *              (at the moment this is only supported on macOS)
  *
  *  - returns: The output of running the command
  *  - throws: `ShellOutError` in case the command couldn't be performed, or it returned an error
@@ -315,34 +319,42 @@ private extension Process {
         var outputData = Data()
         var errorData = Data()
 
-        let stdoutHandler: (FileHandle) -> Void = { handler in
+        let outputPipe = Pipe()
+        standardOutput = outputPipe
+
+        let errorPipe = Pipe()
+        standardError = errorPipe
+
+        #if !os(Linux)
+        outputPipe.fileHandleForReading.readabilityHandler = { handler in
             let data = handler.availableData
             outputData.append(data)
             outputHandle?.write(data)
         }
 
-        let stderrHandler: (FileHandle) -> Void = { handler in
+        errorPipe.fileHandleForReading.readabilityHandler = { handler in
             let data = handler.availableData
             errorData.append(data)
             errorHandle?.write(data)
         }
-
-        let outputPipe = Pipe()
-        standardOutput = outputPipe
-        outputPipe.fileHandleForReading.readabilityHandler = stdoutHandler
-
-        let errorPipe = Pipe()
-        standardError = errorPipe
-        errorPipe.fileHandleForReading.readabilityHandler = stderrHandler
+        #endif
 
         launch()
+
+        #if os(Linux)
+        outputData = outputPipe.fileHandleForReading.readDataToEndOfFile()
+        errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
+        #endif
+
         waitUntilExit()
 
         outputHandle?.closeFile()
         errorHandle?.closeFile()
 
+        #if !os(Linux)
         outputPipe.fileHandleForReading.readabilityHandler = nil
         errorPipe.fileHandleForReading.readabilityHandler = nil
+        #endif
 
         if terminationStatus != 0 {
             throw ShellOutError(

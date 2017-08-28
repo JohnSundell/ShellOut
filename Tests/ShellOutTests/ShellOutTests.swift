@@ -90,4 +90,54 @@ class ShellOutTests: XCTestCase {
             XCTFail("Invalid error type: \(error)")
         }
     }
+
+    func testGitCommands() throws {
+        // Setup & clear state
+        let tempFolderPath = NSTemporaryDirectory()
+        try shellOut(to: "rm -rf GitTestOrigin", at: tempFolderPath)
+        try shellOut(to: "rm -rf GitTestClone", at: tempFolderPath)
+
+        // Create a origin repository and make a commit with a file
+        let originPath = tempFolderPath + "/GitTestOrigin"
+        try shellOut(to: .createFolder(named: "GitTestOrigin"), at: tempFolderPath)
+        try shellOut(to: .gitInit(), at: originPath)
+        try shellOut(to: .createFile(named: "Test", withContents: "Hello world"), at: originPath)
+        try shellOut(to: .gitCommit(message: "Commit"), at: originPath)
+
+        // Clone to a new repository and read the file
+        let clonePath = tempFolderPath + "/GitTestClone"
+        let cloneURL = URL(fileURLWithPath: originPath)
+        try shellOut(to: .gitClone(url: cloneURL, to: "GitTestClone"), at: tempFolderPath)
+
+        let filePath = clonePath + "/Test"
+        XCTAssertEqual(try shellOut(to: .readFile(at: filePath)), "Hello world")
+
+        // Make a new commit in the origin repository
+        try shellOut(to: .createFile(named: "Test", withContents: "Hello again"), at: originPath)
+        try shellOut(to: .gitCommit(message: "Commit"), at: originPath)
+
+        // Pull the commit in the clone repository and read the file again
+        try shellOut(to: .gitPull(), at: clonePath)
+        XCTAssertEqual(try shellOut(to: .readFile(at: filePath)), "Hello again")
+    }
+
+    func testSwiftPackageManagerCommands() throws {
+        // Setup & clear state
+        let tempFolderPath = NSTemporaryDirectory()
+        try shellOut(to: "rm -rf SwiftPackageManagerTest", at: tempFolderPath)
+        try shellOut(to: .createFolder(named: "SwiftPackageManagerTest"), at: tempFolderPath)
+
+        // Create a Swift package and verify that it has a Package.swift file
+        let packagePath = tempFolderPath + "/SwiftPackageManagerTest"
+        try shellOut(to: .createSwiftPackage(), at: packagePath)
+        XCTAssertFalse(try shellOut(to: .readFile(at: packagePath + "/Package.swift")).isEmpty)
+
+        // Build the package and verify that there's a .build folder
+        try shellOut(to: .buildSwiftPackage(), at: packagePath)
+        XCTAssertTrue(try shellOut(to: "ls -a", at: packagePath).contains(".build"))
+
+        // Generate an Xcode project
+        try shellOut(to: .generateSwiftPackageXcodeProject(), at: packagePath)
+        XCTAssertTrue(try shellOut(to: "ls -a", at: packagePath).contains("SwiftPackageManagerTest.xcodeproj"))
+    }
 }

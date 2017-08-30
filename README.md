@@ -34,7 +34,7 @@ do {
 
 ## Pre-defined commands
 
-Another way to use ShellOut is by executing pre-defined commands, that enable you to easily perform common tasks without having to construct commands using strings. It also ships with a set of such pre-defined commands for common tasks, such as using Git, manipulating the file system and using tools like [Marathon](https://github.com/JohnSundell/Marathon), [CocoaPods](https://cocoapods.org) and [Fastlane](https://fastlane.tools).
+Another way to use ShellOut is by executing pre-defined commands, that enable you to easily perform common tasks without having to construct commands using strings. It also ships with a set of such pre-defined commands for common tasks, such as using Git, manipulating the file system and using tools like [Marathon](https://github.com/JohnSundell/Marathon), [CocoaPods](https://cocoapods.org) and [fastlane](https://fastlane.tools).
 
 ### Use Git
 
@@ -79,7 +79,7 @@ try shellOut(to: .buildSwiftPackage())
 try shellOut(to: .testSwiftPackage())
 ```
 
-### Use [Fastlane](https://fastlane.tools)
+### Use [fastlane](https://fastlane.tools)
 
 ```swift
 try shellOut(to: .runFastlane(usingLane: "appstore"))

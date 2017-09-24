@@ -296,7 +296,7 @@ public extension ShellOutCommand {
 }
 
 /// Error type thrown by the `shellOut()` function, in case the given command failed
-public struct ShellOutError: Swift.Error {
+public struct ShellOutError: Swift.Error, CustomDebugStringConvertible {
     /// The termination status of the command that was run
     public let terminationStatus: Int32
     /// The error message as a UTF8 string, as returned through `STDERR`
@@ -307,6 +307,16 @@ public struct ShellOutError: Swift.Error {
     public let outputData: Data
     /// The output of the command as a UTF8 string, as returned through `STDOUT`
     public var output: String { return outputData.shellOutput() }
+
+    public var debugDescription: String {
+        return
+            [
+                "ShellOutError",
+                "status  : \(terminationStatus)",
+                "message : \(message)",
+                ]
+                .joined(separator: "\n")
+    }
 }
 
 // MARK: - Private

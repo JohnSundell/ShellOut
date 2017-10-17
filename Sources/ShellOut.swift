@@ -192,14 +192,15 @@ public extension ShellOutCommand {
     /// Copy a file from one path to another
     static func copyFile(from originPath: String, to targetPath: String) -> ShellOutCommand {
         let command = "cp".appending(argument: originPath)
-            .appending(argument: targetPath)
+                          .appending(argument: targetPath)
         
         return ShellOutCommand(string: command)
     }
     
     /// Remove a file
-    static func removeFile(from path: String, argument: String = "f") -> ShellOutCommand {
-        let command = "rm -\(argument)".appending(argument: path)
+    static func removeFile(from path: String, arguments: [String] = ["-f"]) -> ShellOutCommand {
+        let command = "rm".appending(arguments: arguments)
+                          .appending(argument: path)
         
         return ShellOutCommand(string: command)
     }

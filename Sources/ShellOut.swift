@@ -196,6 +196,11 @@ public extension ShellOutCommand {
         
         return ShellOutCommand(string: command)
     }
+    
+    /// Remove a file
+    static func removeFile(from path: String, argument: String = "f") -> ShellOutCommand {
+        let command = "rm -\(argument)".appending(argument: path)
+    }
 
     /// Open a file using its designated application
     static func openFile(at path: String) -> ShellOutCommand {

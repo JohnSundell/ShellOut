@@ -57,7 +57,7 @@ try shellOut(to: .moveFile(from: "path/a", to: "path/b"))
 try shellOut(to: .copyFile(from: "path/a", to: "path/b"))
 try shellOut(to: .openFile(at: "Project.xcodeproj"))
 try shellOut(to: .readFile(at: "Podfile"))
-try shellOut(to: .removeFile(from: "path/a", argument: "f"))
+try shellOut(to: .removeFile(from: "path/a"))
 try shellOut(to: .createSymlink(to: "target", at: "link"))
 try shellOut(to: .expandSymlink(at: "link"))
 ```

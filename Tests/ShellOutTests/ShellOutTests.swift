@@ -32,6 +32,19 @@ class ShellOutTests: XCTestCase {
         XCTAssertEqual(textFileContent, "Hello")
     }
 
+    func testSingleCommandAtPathContainingSpace() throws {
+        try shellOut(to: "mkdir -p \"ShellOut Test Folder\"", at: NSTemporaryDirectory())
+        try shellOut(to: "echo \"Hello\" > File", at: NSTemporaryDirectory() + "ShellOut Test Folder")
+
+        let output = try shellOut(to: "cat \(NSTemporaryDirectory())ShellOut\\ Test\\ Folder/File")
+        XCTAssertEqual(output, "Hello")
+    }
+
+    func testSingleCommandAtPathContainingTilde() throws {
+        let homeContents = try shellOut(to: "ls", at: "~")
+        XCTAssertFalse(homeContents.isEmpty)
+    }
+
     func testSeriesOfCommands() throws {
         let echo = try shellOut(to: ["echo \"Hello\"", "echo \"world\""])
         XCTAssertEqual(echo, "Hello\nworld")

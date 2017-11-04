@@ -83,6 +83,7 @@ class ShellOutTests: XCTestCase {
                                        """
 
         XCTAssertEqual("\(error)", expectedErrorDescription)
+        XCTAssertEqual(error.localizedDescription, expectedErrorDescription)
     }
 
     func testCapturingOutputWithHandle() throws {

@@ -336,6 +336,12 @@ extension ShellOutError: CustomStringConvertible {
     }
 }
 
+extension ShellOutError: LocalizedError {
+    public var errorDescription: String? {
+        return description
+    }
+}
+
 // MARK: - Private
 
 private extension Process {

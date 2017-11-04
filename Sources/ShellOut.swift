@@ -31,7 +31,7 @@ import Foundation
                                         outputHandle: FileHandle? = nil,
                                         errorHandle: FileHandle? = nil) throws -> String {
     let process = Process()
-    let command = "cd \"\(path)\" && \(command) \(arguments.joined(separator: " "))"
+    let command = "cd \(path.escapingSpaces) && \(command) \(arguments.joined(separator: " "))"
     return try process.launchBash(with: command, outputHandle: outputHandle, errorHandle: errorHandle)
 }
 
@@ -418,6 +418,10 @@ private extension Data {
 }
 
 private extension String {
+    var escapingSpaces: String {
+        return replacingOccurrences(of: " ", with: "\\ ")
+    }
+
     func appending(argument: String) -> String {
         return "\(self) \"\(argument)\""
     }

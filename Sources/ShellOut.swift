@@ -391,8 +391,8 @@ private extension Data {
         }
 
         guard !output.hasSuffix("\n") else {
-            let outputLength = output.distance(from: output.startIndex, to: output.endIndex)
-            return output.substring(to: output.index(output.startIndex, offsetBy: outputLength - 1))
+            let endIndex = output.index(before: output.endIndex)
+            return String(output[..<endIndex])
         }
 
         return output

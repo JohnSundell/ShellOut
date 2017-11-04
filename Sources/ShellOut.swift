@@ -325,6 +325,17 @@ public struct ShellOutError: Swift.Error {
     public var output: String { return outputData.shellOutput() }
 }
 
+extension ShellOutError: CustomStringConvertible {
+    public var description: String {
+        return """
+               ShellOut encountered an error
+               Status code: \(terminationStatus)
+               Message: "\(message)"
+               Output: "\(output)"
+               """
+    }
+}
+
 // MARK: - Private
 
 private extension Process {

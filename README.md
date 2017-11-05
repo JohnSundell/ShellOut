@@ -107,7 +107,7 @@ Don't see what you're looking for in the list above? You can easily define your 
 
 ### For command line tools
 
-- Add `.Package(url: "https://github.com/JohnSundell/ShellOut.git", majorVersion: 1)` to your `Package.swift` file.
+- Add `.package(url: "https://github.com/JohnSundell/ShellOut.git", from: "2.0.0")` to your `Package.swift` file's `dependencies`.
 - Update your packages using `$ swift package update`.
 
 ## Help, feedback or suggestions?

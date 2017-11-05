@@ -101,8 +101,8 @@ Don't see what you're looking for in the list above? You can easily define your 
 ### For scripts
 
 - Install [Marathon](https://github.com/johnsundell/marathon).
-- Add ShellOut to Marathon using `$ marathon add git@github.com:JohnSundell/ShellOut.git`.
-- Alternatively, add `git@github.com:JohnSundell/ShellOut.git` to your `Marathonfile`.
+- Add ShellOut to Marathon using `$ marathon add https://github.com/JohnSundell/ShellOut.git`.
+- Alternatively, add `https://github.com/JohnSundell/ShellOut.git` to your `Marathonfile`.
 - Write your script, then run it using `$ marathon run yourScript.swift`.
 
 ### For command line tools

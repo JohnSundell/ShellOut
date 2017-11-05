@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name         = "ShellOut"
-  s.version      = "1.1.0"
+  s.version      = "2.0.0"
   s.summary      = "Easily run shell commands from a Swift script or command line tool"
   s.description  = <<-DESC
 ShellOut is a simple package that enables you to easily “shell out” from a Swift script or command line tool.

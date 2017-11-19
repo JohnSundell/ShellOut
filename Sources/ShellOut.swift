@@ -380,11 +380,11 @@ private extension Process {
         #endif
 
         waitUntilExit()
-        
+
         if let handle = outputHandle, !handle.isStandard {
             handle.closeFile()
         }
-        
+
         if let handle = errorHandle, !handle.isStandard {
             handle.closeFile()
         }
@@ -401,7 +401,7 @@ private extension Process {
                 outputData: outputData
             )
         }
-        
+
         return outputData.shellOutput()
     }
 }
@@ -419,7 +419,7 @@ private extension Data {
         guard let output = String(data: self, encoding: .utf8) else {
             return ""
         }
-        
+
         guard !output.hasSuffix("\n") else {
             let endIndex = output.index(before: output.endIndex)
             return String(output[..<endIndex])

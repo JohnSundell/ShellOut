@@ -5,6 +5,7 @@
  */
 
 import Foundation
+import Dispatch
 
 // MARK: - API
 
@@ -349,6 +350,12 @@ private extension Process {
         launchPath = "/bin/bash"
         arguments = ["-c", command]
 
+        // Because FileHandle's readabilityHandler might be called from a
+        // different queue from the calling queue, avoid a data race by
+        // protecting reads and writes to outputData and errorData on
+        // a single dispatch queue.
+        let outputQueue = DispatchQueue(label: "bash-output-queue")
+
         var outputData = Data()
         var errorData = Data()
 
@@ -360,23 +367,29 @@ private extension Process {
 
         #if !os(Linux)
         outputPipe.fileHandleForReading.readabilityHandler = { handler in
-            let data = handler.availableData
-            outputData.append(data)
-            outputHandle?.write(data)
+            outputQueue.async {
+                let data = handler.availableData
+                outputData.append(data)
+                outputHandle?.write(data)
+            }
         }
 
         errorPipe.fileHandleForReading.readabilityHandler = { handler in
-            let data = handler.availableData
-            errorData.append(data)
-            errorHandle?.write(data)
+            outputQueue.async {
+                let data = handler.availableData
+                errorData.append(data)
+                errorHandle?.write(data)
+            }
         }
         #endif
 
         launch()
 
         #if os(Linux)
-        outputData = outputPipe.fileHandleForReading.readDataToEndOfFile()
-        errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
+        outputQueue.sync {
+            outputData = outputPipe.fileHandleForReading.readDataToEndOfFile()
+            errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
+        }
         #endif
 
         waitUntilExit()
@@ -389,15 +402,19 @@ private extension Process {
         errorPipe.fileHandleForReading.readabilityHandler = nil
         #endif
 
-        if terminationStatus != 0 {
-            throw ShellOutError(
-                terminationStatus: terminationStatus,
-                errorData: errorData,
-                outputData: outputData
-            )
-        }
+        // Block until all writes have occurred to outputData and errorData,
+        // and then read the data back out.
+        return try outputQueue.sync {
+            if terminationStatus != 0 {
+                throw ShellOutError(
+                    terminationStatus: terminationStatus,
+                    errorData: errorData,
+                    outputData: outputData
+                )
+            }
 
-        return outputData.shellOutput()
+            return outputData.shellOutput()
+        }
     }
 }
 

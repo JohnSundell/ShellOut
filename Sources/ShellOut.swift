@@ -148,7 +148,7 @@ public extension ShellOutCommand {
         }
 
         if recursive {
-            command.append(" --recurisve")
+            command.append(" --recursive")
         }
 
         command.append(" --quiet")

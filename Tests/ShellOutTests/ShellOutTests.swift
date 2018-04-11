@@ -114,7 +114,6 @@ class ShellOutTests: XCTestCase {
         /// always pass. These calls will trap if the standardOut FileHandle is closed.
         try shellOut(to: "echo", arguments: ["Hello"], outputHandle: standardOut)
         try shellOut(to: "echo", arguments: ["Hello"], outputHandle: standardOut)
-
     }
 
     func testMultipleCallsToStandardError() throws {

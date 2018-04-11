@@ -362,7 +362,7 @@ extension FileHandle: Handle {
     }
     
     public func endHandling() {
-        closeFile()
+        if shouldBeClosed { closeFile() }
     }
 }
 
@@ -457,6 +457,14 @@ private extension Process {
 
             return outputData.shellOutput()
         }
+    }
+}
+
+private extension FileHandle {
+    var shouldBeClosed: Bool {
+        return self !== FileHandle.standardOutput &&
+            self !== FileHandle.standardError &&
+            self !== FileHandle.standardInput
     }
 }
 

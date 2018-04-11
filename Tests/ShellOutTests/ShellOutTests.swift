@@ -107,6 +107,26 @@ class ShellOutTests: XCTestCase {
         XCTAssertEqual(output + "\n", String(data: capturedData, encoding: .utf8))
     }
 
+    func testMultipleCallsToStandardOut() throws {
+        let standardOut = FileHandle.standardOutput
+
+        /// Do not wrap these calls in XCTAssertNoThrow as it suppresses the error and the test will
+        /// always pass. These calls will trap if the standardOut FileHandle is closed.
+        try shellOut(to: "echo", arguments: ["Hello"], outputHandle: standardOut)
+        try shellOut(to: "echo", arguments: ["Hello"], outputHandle: standardOut)
+
+    }
+
+    func testMultipleCallsToStandardError() throws {
+        let standardError = FileHandle.standardError
+
+        /// Do not wrap these calls in XCTAssertNoThrow as it suppresses the error and the test will
+        /// always pass. These calls will trap if the standardError FileHandle is closed.
+        _ = try? shellOut(to: "bash 'exit 1'", arguments: [], errorHandle: standardError)
+        _ = try? shellOut(to: "bash 'exit 1'", arguments: [], errorHandle: standardError)
+    }
+
+
     func testCapturingOutputWithStringHandle() throws {
         var stringHandleOutput = ""
         let stringHandle = StringHandle { stringHandleOutput.append($0) }

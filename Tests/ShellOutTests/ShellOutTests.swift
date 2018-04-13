@@ -128,7 +128,7 @@ class ShellOutTests: XCTestCase {
 
     func testCapturingOutputWithStringHandle() throws {
         var stringHandleOutput = ""
-        let stringHandle = StringHandle { stringHandleOutput.append($0) }
+        let stringHandle = TestStringHandle { stringHandleOutput.append($0) }
         let output = try shellOut(to: "echo", arguments: ["Hello"], outputHandle: stringHandle)
         XCTAssertEqual(output, "Hello")
         XCTAssertEqual(output, stringHandleOutput)
@@ -154,7 +154,7 @@ class ShellOutTests: XCTestCase {
     
     func testCapturingErrorWithStringHandle() throws {
         var stringHandleOutput = ""
-        let stringHandle = StringHandle { stringHandleOutput.append($0) }
+        let stringHandle = TestStringHandle { stringHandleOutput.append($0) }
 
         do {
             try shellOut(to: "cd", arguments: ["notADirectory"], errorHandle: stringHandle)
@@ -218,5 +218,24 @@ class ShellOutTests: XCTestCase {
         // Generate an Xcode project
         try shellOut(to: .generateSwiftPackageXcodeProject(), at: packagePath)
         XCTAssertTrue(try shellOut(to: "ls -a", at: packagePath).contains("SwiftPackageManagerTest.xcodeproj"))
+    }
+}
+
+/// Test Handle to get async output from the command. The `handlingClosure` will be called each time new output string appear.
+struct TestStringHandle: Handle {
+    private let handlingClosure: (String) -> Void
+
+    /// Default initializer
+    ///
+    /// - Parameter handlingClosure: closure called each time new output string is provided
+    public init(handlingClosure: @escaping (String) -> Void) {
+        self.handlingClosure = handlingClosure
+    }
+
+    public func handle(data: Data) {
+        guard !data.isEmpty else { return }
+        let trimmedOutput = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let output = trimmedOutput, !output.isEmpty else { return }
+        handlingClosure(output)
     }
 }

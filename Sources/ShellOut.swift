@@ -366,25 +366,6 @@ extension FileHandle: Handle {
     }
 }
 
-/// Handle to get async output from the command. The `handlingClosure` will be called each time new output string appear.
-public struct StringHandle: Handle {
-    private let handlingClosure: (String) -> Void
-
-    /// Default initializer
-    ///
-    /// - Parameter handlingClosure: closure called each time new output string is provided
-    public init(handlingClosure: @escaping (String) -> Void) {
-        self.handlingClosure = handlingClosure
-    }
-    
-    public func handle(data: Data) {
-        guard !data.isEmpty else { return }
-        let output = data.shellOutput()
-        guard !output.isEmpty else { return }
-        handlingClosure(output)
-    }
-}
-
 // MARK: - Private
 
 private extension Process {

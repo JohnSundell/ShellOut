@@ -471,7 +471,9 @@ private extension Process {
             outputQueue.async {
                 let data = handler.availableData
                 outputData.append(data)
-                outputHandle?.write(data)
+                DispatchQueue.main.async {
+                    outputHandle?.write(data)
+                }
             }
         }
         
@@ -479,7 +481,9 @@ private extension Process {
             outputQueue.async {
                 let data = handler.availableData
                 errorData.append(data)
-                errorHandle?.write(data)
+                DispatchQueue.main.async {
+                    errorHandle?.write(data)
+                }
             }
         }
         #endif
@@ -495,8 +499,10 @@ private extension Process {
         
         waitUntilExit()
         
-        outputHandle?.closeFile()
-        errorHandle?.closeFile()
+        DispatchQueue.main.async {
+            outputHandle?.closeFile()
+            errorHandle?.closeFile()
+        }
         
         #if !os(Linux)
         outputPipe.fileHandleForReading.readabilityHandler = nil

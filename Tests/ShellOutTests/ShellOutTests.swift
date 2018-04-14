@@ -106,6 +106,21 @@ class ShellOutTests: XCTestCase {
         XCTAssertEqual(output, "Hello")
         XCTAssertEqual(output + "\n", String(data: capturedData, encoding: .utf8))
     }
+    
+    func testCapturingOutputAsynchronously() throws {
+        
+        try shellOut(to: "echo", arguments: ["Hello"], withCompletion: { completion in
+            
+            do {
+                let output = try completion()
+                XCTAssertEqual(output, "Hello")
+            } catch {
+                XCTFail()
+            }
+            
+        })
+        
+    }
 
     func testCapturingErrorWithHandle() throws {
         let pipe = Pipe()

@@ -107,7 +107,7 @@ class ShellOutTests: XCTestCase {
         XCTAssertEqual(output + "\n", String(data: capturedData, encoding: .utf8))
     }
     
-    func testCapturingSuccessfullOutputAsynchronously() throws {
+    func testCapturingSuccessfullOutputAsynchronously() {
         
         shellOut(to: "echo", arguments: ["Hello"], withCompletion: { completion in
             
@@ -123,7 +123,7 @@ class ShellOutTests: XCTestCase {
         
     }
     
-    func testCapturingFailingOutputAsynchronously() throws {
+    func testCapturingFailingOutputAsynchronously() {
         
         shellOut(to: "cd", arguments: ["notADirectory"], withCompletion: { completion in
             

@@ -109,7 +109,7 @@ class ShellOutTests: XCTestCase {
     
     func testCapturingSuccessfullOutputAsynchronously() throws {
         
-        try shellOut(to: "echo", arguments: ["Hello"], withCompletion: { completion in
+        shellOut(to: "echo", arguments: ["Hello"], withCompletion: { completion in
             
             do {
                 let output = try completion()
@@ -125,7 +125,7 @@ class ShellOutTests: XCTestCase {
     
     func testCapturingFailingOutputAsynchronously() throws {
         
-        try shellOut(to: "cd", arguments: ["notADirectory"], withCompletion: { completion in
+        shellOut(to: "cd", arguments: ["notADirectory"], withCompletion: { completion in
             
             do {
                 _ = try completion()

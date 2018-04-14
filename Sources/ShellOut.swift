@@ -44,7 +44,7 @@ public func shellOut(to command: String,
                         at path: String = ".",
                    outputHandle: FileHandle? = nil,
                     errorHandle: FileHandle? = nil,
-      withCompletion completion: @escaping Completion) throws {
+      withCompletion completion: @escaping Completion) {
     
     let command = "cd \(path.escapingSpaces) && \(command) \(arguments.joined(separator: " "))"
     let process = Process.makeBashProcess(withArguments: ["-c", command])
@@ -52,11 +52,7 @@ public func shellOut(to command: String,
     let shellOutQueue = DispatchQueue(label: "shell-out-queue")
     
     shellOutQueue.async {
-        do {
-            try process.launchBash(with: outputHandle, errorHandle: errorHandle, withCompletion: completion)
-        } catch {
-            completion({throw error})
-        }
+        process.launchBash(with: outputHandle, errorHandle: errorHandle, withCompletion: completion)
     }
 }
 
@@ -449,7 +445,7 @@ private extension Process {
         }
     }
     
-    func launchBash(with outputHandle: FileHandle? = nil, errorHandle: FileHandle? = nil, withCompletion completion: @escaping Completion) throws {
+    func launchBash(with outputHandle: FileHandle? = nil, errorHandle: FileHandle? = nil, withCompletion completion: @escaping Completion) {
         
         var outputData = Data()
         var errorData = Data()

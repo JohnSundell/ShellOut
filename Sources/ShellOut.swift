@@ -40,99 +40,25 @@ import Dispatch
 public typealias Completion = (_ inner: () throws -> String) -> Void
 
 public func shellOut(to command: String,
-                     arguments: [String] = [],
-                     at path: String = ".",
-                     withCompletion completion: @escaping Completion) throws {
+                      arguments: [String] = [],
+                        at path: String = ".",
+                   outputHandle: FileHandle? = nil,
+                    errorHandle: FileHandle? = nil,
+      withCompletion completion: @escaping Completion) throws {
+    
+    let command = "cd \(path.escapingSpaces) && \(command) \(arguments.joined(separator: " "))"
+    let process = Process.makeBashProcess(withArguments: ["-c", command])
     
     let shellOutQueue = DispatchQueue(label: "shell-out-queue")
     
     shellOutQueue.async {
-        
-        let command = "cd \(path.escapingSpaces) && \(command) \(arguments.joined(separator: " "))"
-        let process = Process.makeBashProcess(withArguments: ["-c", command])
-        
-        var outputData = Data()
-        var errorData = Data()
-        
-        let outputPipe = Pipe()
-        process.standardOutput = outputPipe
-        
-        let errorPipe = Pipe()
-        process.standardError = errorPipe
-        
-        // Because FileHandle's readabilityHandler might be called from a
-        // different queue from the calling queue, avoid a data race by
-        // protecting reads and writes to outputData and errorData on
-        // a single dispatch queue.
-        let outputQueue = DispatchQueue(label: "bash-output-queue")
-        
-        #if !os(Linux)
-        outputPipe.fileHandleForReading.readabilityHandler = { handler in
-            outputQueue.async {
-                let data = handler.availableData
-                outputData.append(data)
-//                    outputHandle?.write(data)
-            }
-        }
-        
-        errorPipe.fileHandleForReading.readabilityHandler = { handler in
-            outputQueue.async {
-                let data = handler.availableData
-                errorData.append(data)
-//                    errorHandle?.write(data)
-            }
-        }
-        #endif
-        
-        process.launch()
-        
-        #if os(Linux)
-        outputQueue.sync {
-            outputData = outputPipe.fileHandleForReading.readDataToEndOfFile()
-            errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
-        }
-        #endif
-        
-        process.waitUntilExit()
-        
-//            outputHandle?.closeFile()
-//            errorHandle?.closeFile()
-        
-        #if !os(Linux)
-        outputPipe.fileHandleForReading.readabilityHandler = nil
-        errorPipe.fileHandleForReading.readabilityHandler = nil
-        #endif
-        
         do {
-            // Block until all writes have occurred to outputData and errorData,
-            // and then read the data back out.
-            return try outputQueue.sync {
-                if process.terminationStatus != 0 {
-                    throw ShellOutError(
-                        terminationStatus: process.terminationStatus,
-                        errorData: errorData,
-                        outputData: outputData
-                    )
-                }
-                
-                let value = outputData.shellOutput()
-                
-                DispatchQueue.main.async {
-                    completion({return value})
-                }
-            }
+            try process.launchBash(with: outputHandle, errorHandle: errorHandle, withCompletion: completion)
         } catch {
-            DispatchQueue.main.async {
-                completion({throw error})
-            }
+            completion({throw error})
         }
-        
     }
-    
-    
 }
-
-
 
 /**
  *  Run a series of shell commands using Bash
@@ -451,7 +377,7 @@ private extension Process {
         process.arguments = arguments
         return process
     }
-        
+    
     @discardableResult func launchBash(with command: String, outputHandle: FileHandle? = nil, errorHandle: FileHandle? = nil) throws -> String {
         launchPath = "/bin/bash"
         arguments = ["-c", command]
@@ -520,6 +446,85 @@ private extension Process {
             }
 
             return outputData.shellOutput()
+        }
+    }
+    
+    func launchBash(with outputHandle: FileHandle? = nil, errorHandle: FileHandle? = nil, withCompletion completion: @escaping Completion) throws {
+        
+        var outputData = Data()
+        var errorData = Data()
+        
+        let outputPipe = Pipe()
+        standardOutput = outputPipe
+        
+        let errorPipe = Pipe()
+        standardError = errorPipe
+        
+        // Because FileHandle's readabilityHandler might be called from a
+        // different queue from the calling queue, avoid a data race by
+        // protecting reads and writes to outputData and errorData on
+        // a single dispatch queue.
+        let outputQueue = DispatchQueue(label: "bash-output-queue")
+        
+        #if !os(Linux)
+        outputPipe.fileHandleForReading.readabilityHandler = { handler in
+            outputQueue.async {
+                let data = handler.availableData
+                outputData.append(data)
+                outputHandle?.write(data)
+            }
+        }
+        
+        errorPipe.fileHandleForReading.readabilityHandler = { handler in
+            outputQueue.async {
+                let data = handler.availableData
+                errorData.append(data)
+                errorHandle?.write(data)
+            }
+        }
+        #endif
+        
+        launch()
+        
+        #if os(Linux)
+        outputQueue.sync {
+            outputData = outputPipe.fileHandleForReading.readDataToEndOfFile()
+            errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
+        }
+        #endif
+        
+        waitUntilExit()
+        
+        outputHandle?.closeFile()
+        errorHandle?.closeFile()
+        
+        #if !os(Linux)
+        outputPipe.fileHandleForReading.readabilityHandler = nil
+        errorPipe.fileHandleForReading.readabilityHandler = nil
+        #endif
+        
+        do {
+            // Block until all writes have occurred to outputData and errorData,
+            // and then read the data back out.
+            return try outputQueue.sync {
+                if terminationStatus != 0 {
+                    throw ShellOutError(
+                        terminationStatus: terminationStatus,
+                        errorData: errorData,
+                        outputData: outputData
+                    )
+                }
+                
+                let value = outputData.shellOutput()
+                
+                DispatchQueue.main.async {
+                    completion({return value})
+                }
+            }
+        } catch {
+            DispatchQueue.main.async {
+                completion({throw error})
+            }
         }
     }
 }

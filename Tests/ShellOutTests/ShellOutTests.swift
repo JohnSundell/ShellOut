@@ -107,15 +107,36 @@ class ShellOutTests: XCTestCase {
         XCTAssertEqual(output + "\n", String(data: capturedData, encoding: .utf8))
     }
     
-    func testCapturingOutputAsynchronously() throws {
+    func testCapturingSuccessfullOutputAsynchronously() throws {
         
         try shellOut(to: "echo", arguments: ["Hello"], withCompletion: { completion in
             
             do {
                 let output = try completion()
                 XCTAssertEqual(output, "Hello")
+                XCTAssert(Thread.isMainThread)
             } catch {
                 XCTFail()
+            }
+            
+        })
+        
+    }
+    
+    func testCapturingFailingOutputAsynchronously() throws {
+        
+        try shellOut(to: "cd", arguments: ["notADirectory"], withCompletion: { completion in
+            
+            do {
+                _ = try completion()
+                XCTFail("Expected expression to throw")
+            } catch let error as ShellOutError {
+                XCTAssertTrue(error.message.contains("notADirectory"))
+                XCTAssertTrue(error.output.isEmpty)
+                XCTAssertTrue(error.terminationStatus != 0)
+                XCTAssert(Thread.isMainThread)
+            } catch {
+                XCTFail("Invalid error type: \(error)")
             }
             
         })

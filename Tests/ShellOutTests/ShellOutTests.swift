@@ -22,7 +22,7 @@ class ShellOutTests: XCTestCase {
                 XCTFail("Command failed to execute")
             }
         }
-        wait(for: [exp], timeout: 5)
+        wait(for: [exp], timeout: 5, enforceOrder: true)
     }
 
     func testWithArgumentsAsynchronously() {
@@ -36,7 +36,7 @@ class ShellOutTests: XCTestCase {
                 XCTFail("Command failed to execute")
             }
         }
-        wait(for: [exp], timeout: 5)
+        wait(for: [exp], timeout: 5, enforceOrder: true)
     }
 
     func testWithInlineArgumentsAsynchronously() {
@@ -50,7 +50,7 @@ class ShellOutTests: XCTestCase {
                 XCTFail("Command failed to execute")
             }
         }
-        wait(for: [exp], timeout: 5)
+        wait(for: [exp], timeout: 5, enforceOrder: true)
     }
 
     func testSingleCommandAtPathAsynchronously() {
@@ -73,7 +73,7 @@ class ShellOutTests: XCTestCase {
                 XCTFail("Command failed to execute")
             }
         }
-        wait(for: [exp1, exp2], timeout: 5)
+        wait(for: [exp1, exp2], timeout: 5, enforceOrder: true)
     }
 
     func testSingleCommandAtPathContainingSpaceAsynchronously() {
@@ -105,7 +105,7 @@ class ShellOutTests: XCTestCase {
                 XCTFail("Command failed to execute")
             }
         }
-        wait(for: [exp1, exp2, exp3], timeout: 5)
+        wait(for: [exp1, exp2, exp3], timeout: 5, enforceOrder: true)
     }
 
     func testSingleCommandAtPathContainingTildeAsynchronously() {
@@ -119,7 +119,7 @@ class ShellOutTests: XCTestCase {
                 XCTFail("Command failed to execute")
             }
         }
-        wait(for: [exp1], timeout: 5)
+        wait(for: [exp1], timeout: 5, enforceOrder: true)
     }
 
     func testSeriesOfCommandsAsynchronously() {
@@ -133,7 +133,7 @@ class ShellOutTests: XCTestCase {
                 XCTFail("Command failed to execute")
             }
         }
-        wait(for: [exp1], timeout: 5)
+        wait(for: [exp1], timeout: 5, enforceOrder: true)
     }
 
     func testSeriesOfCommandsAtPathAsynchronously() {
@@ -163,7 +163,7 @@ class ShellOutTests: XCTestCase {
                 XCTFail("Command failed to execute")
             }
         }
-        wait(for: [exp1, exp2], timeout: 5)
+        wait(for: [exp1, exp2], timeout: 5, enforceOrder: true)
     }
 
     func testThrowingErrorAsynchronously() {
@@ -181,28 +181,7 @@ class ShellOutTests: XCTestCase {
                 XCTFail("Invalid error type: \(error)")
             }
         }
-        wait(for: [exp1], timeout: 5)
-    }
-
-    func testErrorDescriptionAsynchronously() {
-        let errorMessage = "Hey, I'm an error!"
-        let output = "Some output"
-
-        let error = ShellOutError(
-            terminationStatus: 7,
-            errorData: errorMessage.data(using: .utf8)!,
-            outputData: output.data(using: .utf8)!
-        )
-
-        let expectedErrorDescription = """
-                                       ShellOut encountered an error
-                                       Status code: 7
-                                       Message: "Hey, I'm an error!"
-                                       Output: "Some output"
-                                       """
-
-        XCTAssertEqual("\(error)", expectedErrorDescription)
-        XCTAssertEqual(error.localizedDescription, expectedErrorDescription)
+        wait(for: [exp1], timeout: 5, enforceOrder: true)
     }
     
     // MARK: - Synchronously

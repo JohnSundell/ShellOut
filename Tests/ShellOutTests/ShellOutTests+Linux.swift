@@ -18,7 +18,16 @@ extension ShellOutTests {
         ("testSeriesOfCommandsAtPath", testSeriesOfCommandsAtPath),
         ("testThrowingError", testThrowingError),
         ("testGitCommands", testGitCommands),
-        ("testSwiftPackageManagerCommands", testSwiftPackageManagerCommands)
+        ("testSwiftPackageManagerCommands", testSwiftPackageManagerCommands),
+        ("testWithoutArgumentsAsynchronously", testWithoutArguments),
+        ("testWithArgumentsAsynchronously", testWithArguments),
+        ("testWithInlineArgumentsAsynchronously", testWithInlineArguments),
+        ("testSingleCommandAtPathAsynchronously", testSingleCommandAtPath),
+        ("testSeriesOfCommandsAsynchronously", testSeriesOfCommands),
+        ("testSeriesOfCommandsAtPathAsynchronously", testSeriesOfCommandsAtPath),
+        ("testThrowingErrorAsynchronously", testThrowingError),
+        ("testGitCommandsAsynchronously", testGitCommands),
+        ("testSwiftPackageManagerCommandsAsynchronously", testSwiftPackageManagerCommands)
     ]
 }
 #endif

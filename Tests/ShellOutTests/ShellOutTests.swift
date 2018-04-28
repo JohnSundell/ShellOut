@@ -12,9 +12,10 @@ class ShellOutTests: XCTestCase {
     // MARK: - Asynchronously
     
     func testWithoutArgumentsAsynchronously() {
-        let exp = expectation(description: "completion")
+        let time: Double = 5
+        let exp1 = expectation(description: "completion")
         shellOut(to: "uptime") { (completion) in
-            exp.fulfill()
+            exp1.fulfill()
             do {
                 let output = try completion()
                 XCTAssertTrue(output.contains("load average"))
@@ -22,10 +23,14 @@ class ShellOutTests: XCTestCase {
                 XCTFail("Command failed to execute")
             }
         }
-        wait(for: [exp], timeout: 5, enforceOrder: true)
+        let result = XCTWaiter.wait(for: [exp1], timeout: time)
+        if result != .completed {
+            XCTFail("Condition was not satisfied during \(time) seconds")
+        }
     }
 
     func testWithArgumentsAsynchronously() {
+        let time: Double = 5
         let exp = expectation(description: "completion")
         shellOut(to: "echo", arguments: ["Hello world"]) { (completion) in
             exp.fulfill()
@@ -36,10 +41,14 @@ class ShellOutTests: XCTestCase {
                 XCTFail("Command failed to execute")
             }
         }
-        wait(for: [exp], timeout: 5, enforceOrder: true)
+        let result = XCTWaiter.wait(for: [exp], timeout: time)
+        if result != .completed {
+            XCTFail("Condition was not satisfied during \(time) seconds")
+        }
     }
 
     func testWithInlineArgumentsAsynchronously() {
+        let time: Double = 5
         let exp = expectation(description: "completion")
         shellOut(to: "echo \"Hello world\"") { (completion) in
             exp.fulfill()
@@ -50,10 +59,14 @@ class ShellOutTests: XCTestCase {
                 XCTFail("Command failed to execute")
             }
         }
-        wait(for: [exp], timeout: 5, enforceOrder: true)
+        let result = XCTWaiter.wait(for: [exp], timeout: time)
+        if result != .completed {
+            XCTFail("Condition was not satisfied during \(time) seconds")
+        }
     }
 
     func testSingleCommandAtPathAsynchronously() {
+        let time: Double = 5
         let exp1 = expectation(description: "completion1")
         let exp2 = expectation(description: "completion2")
         shellOut(to: "echo \"Hello\" > \(NSTemporaryDirectory())ShellOutTests-SingleCommand.txt") { (completion1) in
@@ -73,10 +86,14 @@ class ShellOutTests: XCTestCase {
                 XCTFail("Command failed to execute")
             }
         }
-        wait(for: [exp1, exp2], timeout: 5, enforceOrder: true)
+        let result = XCTWaiter.wait(for: [exp1, exp2], timeout: time, enforceOrder: true)
+        if result != .completed {
+            XCTFail("Condition was not satisfied during \(time) seconds")
+        }
     }
 
     func testSingleCommandAtPathContainingSpaceAsynchronously() {
+        let time: Double = 5
         let exp1 = expectation(description: "completion1")
         let exp2 = expectation(description: "completion2")
         let exp3 = expectation(description: "completion3")
@@ -105,10 +122,14 @@ class ShellOutTests: XCTestCase {
                 XCTFail("Command failed to execute")
             }
         }
-        wait(for: [exp1, exp2, exp3], timeout: 5, enforceOrder: true)
+        let result = XCTWaiter.wait(for: [exp1, exp2, exp3], timeout: time, enforceOrder: true)
+        if result != .completed {
+            XCTFail("Condition was not satisfied during \(time) seconds")
+        }
     }
 
     func testSingleCommandAtPathContainingTildeAsynchronously() {
+        let time: Double = 5
         let exp1 = expectation(description: "completion")
         shellOut(to: "ls", at: "~") { (completion) in
             exp1.fulfill()
@@ -119,10 +140,14 @@ class ShellOutTests: XCTestCase {
                 XCTFail("Command failed to execute")
             }
         }
-        wait(for: [exp1], timeout: 5, enforceOrder: true)
+        let result = XCTWaiter.wait(for: [exp1], timeout: time)
+        if result != .completed {
+            XCTFail("Condition was not satisfied during \(time) seconds")
+        }
     }
 
     func testSeriesOfCommandsAsynchronously() {
+        let time: Double = 5
         let exp1 = expectation(description: "completion")
         shellOut(to: ["echo \"Hello\"", "echo \"world\""]) { (completion) in
             exp1.fulfill()
@@ -133,10 +158,14 @@ class ShellOutTests: XCTestCase {
                 XCTFail("Command failed to execute")
             }
         }
-        wait(for: [exp1], timeout: 5, enforceOrder: true)
+        let result = XCTWaiter.wait(for: [exp1], timeout: time)
+        if result != .completed {
+            XCTFail("Condition was not satisfied during \(time) seconds")
+        }
     }
 
     func testSeriesOfCommandsAtPathAsynchronously() {
+        let time: Double = 5
         let exp1 = expectation(description: "completion1")
         let exp2 = expectation(description: "completion1")
         shellOut(to: [
@@ -163,10 +192,14 @@ class ShellOutTests: XCTestCase {
                 XCTFail("Command failed to execute")
             }
         }
-        wait(for: [exp1, exp2], timeout: 5, enforceOrder: true)
+        let result = XCTWaiter.wait(for: [exp1, exp2], timeout: time, enforceOrder: true)
+        if result != .completed {
+            XCTFail("Condition was not satisfied during \(time) seconds")
+        }
     }
 
     func testThrowingErrorAsynchronously() {
+        let time: Double = 5
         let exp1 = expectation(description: "completion")
         shellOut(to: "cd", arguments: ["notADirectory"]) { (completion) in
             exp1.fulfill()
@@ -181,7 +214,10 @@ class ShellOutTests: XCTestCase {
                 XCTFail("Invalid error type: \(error)")
             }
         }
-        wait(for: [exp1], timeout: 5, enforceOrder: true)
+        let result = XCTWaiter.wait(for: [exp1], timeout: time)
+        if result != .completed {
+            XCTFail("Condition was not satisfied during \(time) seconds")
+        }
     }
     
     // MARK: - Synchronously

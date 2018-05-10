@@ -4,6 +4,7 @@
  *  Licensed under the MIT license. See LICENSE file.
  */
 
+import Foundation
 import XCTest
 @testable import ShellOut
 

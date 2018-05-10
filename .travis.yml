@@ -1,5 +1,6 @@
 language: swift
 osx_image: xcode9.3
+before_install: chmod +x ./build-xcode-proj.sh
 install: ./build-xcode-proj.sh
 script:
     - xcodebuild clean test -project ShellOut.xcodeproj -scheme ShellOut-Package -destination "platform=iOS Simulator,name=iPhone 8,OS=11.3" CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO ONLY_ACTIVE_ARCH=NO -quiet

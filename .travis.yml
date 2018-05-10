@@ -1,11 +1,4 @@
-os:
-  - linux
-  - osx
-language: generic
-sudo: required
-dist: trusty
+language: swift
 osx_image: xcode9.3
-install:
-    - eval "$(curl -sL https://swiftenv.fuller.li/install.sh)"
 script:
-    - swift test
+    - xcodebuild clean test -project ShellOut.xcodeproj -scheme ShellOut-Package -destination "platform=iOS Simulator,name=iPhone 8,OS=11.3" CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO ONLY_ACTIVE_ARCH=NO -quiet

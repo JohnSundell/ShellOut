@@ -1,6 +1,14 @@
 language: swift
+
+branches:
+ only:
+ - master
+ 
+xcode_project: ShellOut.xcodeproj
+xcode_scheme: ShellOut
 osx_image: xcode9.3
-before_install: chmod +x ./build-xcode-proj.sh
-install: ./build-xcode-proj.sh
-script:
-    - xcodebuild clean test -project ShellOut.xcodeproj -scheme ShellOut-Package -destination "platform=iOS Simulator,name=iPhone 8,OS=11.3" CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO ONLY_ACTIVE_ARCH=NO -quiet
+xcode_sdk: iphonesimulator11.3
+
+script: 
+ - xcodebuild -scheme ShellOut -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone X,OS=11.3' test
+ 

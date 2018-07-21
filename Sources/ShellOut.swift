@@ -15,6 +15,8 @@ import Dispatch
  *  - parameter command: The command to run
  *  - parameter arguments: The arguments to pass to the command
  *  - parameter path: The path to execute the commands at (defaults to current folder)
+ *  - parameter inputHandle: Any `FileHandle` that any input (STDIN) should be redirected to
+ *              (at the moment this is only supported on macOS)
  *  - parameter outputHandle: Any `FileHandle` that any output (STDOUT) should be redirected to
  *              (at the moment this is only supported on macOS)
  *  - parameter errorHandle: Any `FileHandle` that any error output (STDERR) should be redirected to
@@ -42,6 +44,8 @@ import Dispatch
  *
  *  - parameter commands: The commands to run
  *  - parameter path: The path to execute the commands at (defaults to current folder)
+ *  - parameter inputHandle: Any `FileHandle` that any input (STDIN) should be redirected to
+ *              (at the moment this is only supported on macOS)
  *  - parameter outputHandle: Any `FileHandle` that any output (STDOUT) should be redirected to
  *              (at the moment this is only supported on macOS)
  *  - parameter errorHandle: Any `FileHandle` that any error output (STDERR) should be redirected to
@@ -55,10 +59,11 @@ import Dispatch
  */
 @discardableResult public func shellOut(to commands: [String],
                                         at path: String = ".",
+                                        inputHandle: FileHandle? = nil,
                                         outputHandle: FileHandle? = nil,
                                         errorHandle: FileHandle? = nil) throws -> String {
     let command = commands.joined(separator: " && ")
-    return try shellOut(to: command, at: path, outputHandle: outputHandle, errorHandle: errorHandle)
+    return try shellOut(to: command, at: path, inputHandle: inputHandle, outputHandle: outputHandle, errorHandle: errorHandle)
 }
 
 /**
@@ -66,6 +71,7 @@ import Dispatch
  *
  *  - parameter command: The command to run
  *  - parameter path: The path to execute the commands at (defaults to current folder)
+ *  - parameter inputHandle: Any `FileHandle` that any input (STDIN) should be redirected to
  *  - parameter outputHandle: Any `FileHandle` that any output (STDOUT) should be redirected to
  *  - parameter errorHandle: Any `FileHandle` that any error output (STDERR) should be redirected to
  *
@@ -79,9 +85,10 @@ import Dispatch
  */
 @discardableResult public func shellOut(to command: ShellOutCommand,
                                         at path: String = ".",
+                                        inputHandle: FileHandle? = nil,
                                         outputHandle: FileHandle? = nil,
                                         errorHandle: FileHandle? = nil) throws -> String {
-    return try shellOut(to: command.string, at: path, outputHandle: outputHandle, errorHandle: errorHandle)
+    return try shellOut(to: command.string, at: path, inputHandle: inputHandle, outputHandle: outputHandle, errorHandle: errorHandle)
 }
 
 /// Structure used to pre-define commands for use with ShellOut

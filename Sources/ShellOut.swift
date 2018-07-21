@@ -29,11 +29,12 @@ import Dispatch
 @discardableResult public func shellOut(to command: String,
                                         arguments: [String] = [],
                                         at path: String = ".",
+                                        inputHandle: FileHandle? = nil,
                                         outputHandle: FileHandle? = nil,
                                         errorHandle: FileHandle? = nil) throws -> String {
     let process = Process()
     let command = "cd \(path.escapingSpaces) && \(command) \(arguments.joined(separator: " "))"
-    return try process.launchBash(with: command, outputHandle: outputHandle, errorHandle: errorHandle)
+    return try process.launchBash(with: command, inputHandle: inputHandle, outputHandle: outputHandle, errorHandle: errorHandle)
 }
 
 /**
@@ -346,7 +347,7 @@ extension ShellOutError: LocalizedError {
 // MARK: - Private
 
 private extension Process {
-    @discardableResult func launchBash(with command: String, outputHandle: FileHandle? = nil, errorHandle: FileHandle? = nil) throws -> String {
+    @discardableResult func launchBash(with command: String, inputHandle: FileHandle? = nil, outputHandle: FileHandle? = nil, errorHandle: FileHandle? = nil) throws -> String {
         launchPath = "/bin/bash"
         arguments = ["-c", command]
 
@@ -359,11 +360,14 @@ private extension Process {
         var outputData = Data()
         var errorData = Data()
 
+        standardInput = inputHandle
+
         let outputPipe = Pipe()
         standardOutput = outputPipe
 
         let errorPipe = Pipe()
         standardError = errorPipe
+
 
         #if !os(Linux)
         outputPipe.fileHandleForReading.readabilityHandler = { handler in

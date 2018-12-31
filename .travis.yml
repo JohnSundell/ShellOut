@@ -1,8 +1,14 @@
-os: linux
-language: generic
-sudo: required
-dist: trusty
-install:
-    - eval "$(curl -sL https://gist.githubusercontent.com/kylef/5c0475ff02b7c7671d2a/raw/9f442512a46d7a2af7b850d65a7e9bd31edfb09b/swiftenv-install.sh)"
-script:
-    - swift test
+language: swift
+
+branches:
+ only:
+ - master
+
+xcode_project: ShellOut.xcodeproj
+xcode_scheme: ShellOut-package
+osx_image: xcode9.3
+xcode_sdk: iphonesimulator11.3
+
+script: 
+ - xcodebuild -scheme ShellOut-package -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone X,OS=11.3' test
+ 

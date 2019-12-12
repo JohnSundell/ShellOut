@@ -367,16 +367,16 @@ private extension Process {
 
         #if !os(Linux)
         outputPipe.fileHandleForReading.readabilityHandler = { handler in
+            let data = handler.availableData
             outputQueue.async {
-                let data = handler.availableData
                 outputData.append(data)
                 outputHandle?.write(data)
             }
         }
 
         errorPipe.fileHandleForReading.readabilityHandler = { handler in
+            let data = handler.availableData
             outputQueue.async {
-                let data = handler.availableData
                 errorData.append(data)
                 errorHandle?.write(data)
             }

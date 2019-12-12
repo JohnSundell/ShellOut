@@ -394,8 +394,13 @@ private extension Process {
 
         waitUntilExit()
 
-        outputHandle?.closeFile()
-        errorHandle?.closeFile()
+        if let handle = outputHandle, !handle.isStandard {
+            handle.closeFile()
+        }
+
+        if let handle = errorHandle, !handle.isStandard {
+            handle.closeFile()
+        }
 
         #if !os(Linux)
         outputPipe.fileHandleForReading.readabilityHandler = nil
@@ -415,6 +420,14 @@ private extension Process {
 
             return outputData.shellOutput()
         }
+    }
+}
+
+private extension FileHandle {
+    var isStandard: Bool {
+        return self === FileHandle.standardOutput ||
+            self === FileHandle.standardError ||
+            self === FileHandle.standardInput
     }
 }
 

@@ -9,6 +9,9 @@ import Dispatch
 
 // MARK: - API
 
+// ENV
+public var ENV = ["PATH":"/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"] 
+
 /**
  *  Run a shell command using Bash
  *
@@ -19,6 +22,7 @@ import Dispatch
  *              (at the moment this is only supported on macOS)
  *  - parameter errorHandle: Any `FileHandle` that any error output (STDERR) should be redirected to
  *              (at the moment this is only supported on macOS)
+  *  - parameter env: Dictionary of environment variables
  *
  *  - returns: The output of running the command
  *  - throws: `ShellOutError` in case the command couldn't be performed, or it returned an error
@@ -30,10 +34,12 @@ import Dispatch
                                         arguments: [String] = [],
                                         at path: String = ".",
                                         outputHandle: FileHandle? = nil,
-                                        errorHandle: FileHandle? = nil) throws -> String {
+                                        errorHandle: FileHandle? = nil,
+                                        env: [String: String] = ENV
+                                        ) throws -> String {
     let process = Process()
     let command = "cd \(path.escapingSpaces) && \(command) \(arguments.joined(separator: " "))"
-    return try process.launchBash(with: command, outputHandle: outputHandle, errorHandle: errorHandle)
+    return try process.launchBash(with: command, outputHandle: outputHandle, errorHandle: errorHandle, env: env)
 }
 
 /**
@@ -55,9 +61,11 @@ import Dispatch
 @discardableResult public func shellOut(to commands: [String],
                                         at path: String = ".",
                                         outputHandle: FileHandle? = nil,
-                                        errorHandle: FileHandle? = nil) throws -> String {
+                                        errorHandle: FileHandle? = nil,
+                                        env: [String: String] = ENV
+                                        ) throws -> String {
     let command = commands.joined(separator: " && ")
-    return try shellOut(to: command, at: path, outputHandle: outputHandle, errorHandle: errorHandle)
+    return try shellOut(to: command, at: path, outputHandle: outputHandle, errorHandle: errorHandle, env: env)
 }
 
 /**
@@ -79,8 +87,10 @@ import Dispatch
 @discardableResult public func shellOut(to command: ShellOutCommand,
                                         at path: String = ".",
                                         outputHandle: FileHandle? = nil,
-                                        errorHandle: FileHandle? = nil) throws -> String {
-    return try shellOut(to: command.string, at: path, outputHandle: outputHandle, errorHandle: errorHandle)
+                                        errorHandle: FileHandle? = nil,
+                                        env: [String: String] = ENV
+                                        ) throws -> String {
+    return try shellOut(to: command.string, at: path, outputHandle: outputHandle, errorHandle: errorHandle, env: env)
 }
 
 /// Structure used to pre-define commands for use with ShellOut
@@ -346,9 +356,12 @@ extension ShellOutError: LocalizedError {
 // MARK: - Private
 
 private extension Process {
-    @discardableResult func launchBash(with command: String, outputHandle: FileHandle? = nil, errorHandle: FileHandle? = nil) throws -> String {
+    @discardableResult func launchBash(with command: String, outputHandle: FileHandle? = nil, errorHandle: FileHandle? = nil,
+                                        env: [String: String] = ENV
+                                        ) throws -> String {
         launchPath = "/bin/bash"
         arguments = ["-c", command]
+        environment = env
 
         // Because FileHandle's readabilityHandler might be called from a
         // different queue from the calling queue, avoid a data race by

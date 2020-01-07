@@ -15,6 +15,7 @@ import Dispatch
  *  - parameter command: The command to run
  *  - parameter arguments: The arguments to pass to the command
  *  - parameter path: The path to execute the commands at (defaults to current folder)
+ *  - parameter process: Which process to use to perform the command (default: A new one)
  *  - parameter outputHandle: Any `FileHandle` that any output (STDOUT) should be redirected to
  *              (at the moment this is only supported on macOS)
  *  - parameter errorHandle: Any `FileHandle` that any error output (STDERR) should be redirected to
@@ -26,14 +27,21 @@ import Dispatch
  *  Use this function to "shell out" in a Swift script or command line tool
  *  For example: `shellOut(to: "mkdir", arguments: ["NewFolder"], at: "~/CurrentFolder")`
  */
-@discardableResult public func shellOut(to command: String,
-                                        arguments: [String] = [],
-                                        at path: String = ".",
-                                        outputHandle: FileHandle? = nil,
-                                        errorHandle: FileHandle? = nil) throws -> String {
-    let process = Process()
+@discardableResult public func shellOut(
+    to command: String,
+    arguments: [String] = [],
+    at path: String = ".",
+    process: Process = .init(),
+    outputHandle: FileHandle? = nil,
+    errorHandle: FileHandle? = nil
+) throws -> String {
     let command = "cd \(path.escapingSpaces) && \(command) \(arguments.joined(separator: " "))"
-    return try process.launchBash(with: command, outputHandle: outputHandle, errorHandle: errorHandle)
+
+    return try process.launchBash(
+        with: command,
+        outputHandle: outputHandle,
+        errorHandle: errorHandle
+    )
 }
 
 /**
@@ -41,6 +49,7 @@ import Dispatch
  *
  *  - parameter commands: The commands to run
  *  - parameter path: The path to execute the commands at (defaults to current folder)
+ *  - parameter process: Which process to use to perform the command (default: A new one)
  *  - parameter outputHandle: Any `FileHandle` that any output (STDOUT) should be redirected to
  *              (at the moment this is only supported on macOS)
  *  - parameter errorHandle: Any `FileHandle` that any error output (STDERR) should be redirected to
@@ -52,12 +61,22 @@ import Dispatch
  *  Use this function to "shell out" in a Swift script or command line tool
  *  For example: `shellOut(to: ["mkdir NewFolder", "cd NewFolder"], at: "~/CurrentFolder")`
  */
-@discardableResult public func shellOut(to commands: [String],
-                                        at path: String = ".",
-                                        outputHandle: FileHandle? = nil,
-                                        errorHandle: FileHandle? = nil) throws -> String {
+@discardableResult public func shellOut(
+    to commands: [String],
+    at path: String = ".",
+    process: Process = .init(),
+    outputHandle: FileHandle? = nil,
+    errorHandle: FileHandle? = nil
+) throws -> String {
     let command = commands.joined(separator: " && ")
-    return try shellOut(to: command, at: path, outputHandle: outputHandle, errorHandle: errorHandle)
+
+    return try shellOut(
+        to: command,
+        at: path,
+        process: process,
+        outputHandle: outputHandle,
+        errorHandle: errorHandle
+    )
 }
 
 /**
@@ -65,6 +84,7 @@ import Dispatch
  *
  *  - parameter command: The command to run
  *  - parameter path: The path to execute the commands at (defaults to current folder)
+ *  - parameter process: Which process to use to perform the command (default: A new one)
  *  - parameter outputHandle: Any `FileHandle` that any output (STDOUT) should be redirected to
  *  - parameter errorHandle: Any `FileHandle` that any error output (STDERR) should be redirected to
  *
@@ -76,11 +96,20 @@ import Dispatch
  *
  *  See `ShellOutCommand` for more info.
  */
-@discardableResult public func shellOut(to command: ShellOutCommand,
-                                        at path: String = ".",
-                                        outputHandle: FileHandle? = nil,
-                                        errorHandle: FileHandle? = nil) throws -> String {
-    return try shellOut(to: command.string, at: path, outputHandle: outputHandle, errorHandle: errorHandle)
+@discardableResult public func shellOut(
+    to command: ShellOutCommand,
+    at path: String = ".",
+    process: Process = .init(),
+    outputHandle: FileHandle? = nil,
+    errorHandle: FileHandle? = nil
+) throws -> String {
+    return try shellOut(
+        to: command.string,
+        at: path,
+        process: process,
+        outputHandle: outputHandle,
+        errorHandle: errorHandle
+    )
 }
 
 /// Structure used to pre-define commands for use with ShellOut

@@ -41,8 +41,8 @@ class ShellOutTests: XCTestCase {
     }
 
     func testSingleCommandAtPathContainingTilde() throws {
-        let homeContents = try shellOut(to: "ls", at: "~")
-        XCTAssertFalse(homeContents.isEmpty)
+        let homeFolders = try shellOut(to: "ls", at: "~/..")
+        XCTAssertFalse(homeFolders.isEmpty)
     }
 
     func testSeriesOfCommands() throws {

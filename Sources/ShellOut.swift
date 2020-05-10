@@ -193,7 +193,7 @@ public extension ShellOutCommand {
     }
 
     private static func git(allowingPrompt: Bool) -> String {
-        allowingPrompt ? "git" : "env GIT_TERMINAL_PROMPT=0 git"
+        return allowingPrompt ? "git" : "env GIT_TERMINAL_PROMPT=0 git"
     }
 }
 

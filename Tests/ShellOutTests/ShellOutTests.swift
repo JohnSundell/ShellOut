@@ -3,7 +3,7 @@
  *  Copyright (c) John Sundell 2017
  *  Licensed under the MIT license. See LICENSE file.
  */
-
+#if os(macOS) || os(Linux)
 import XCTest
 @testable import ShellOut
 
@@ -175,3 +175,4 @@ class ShellOutTests: XCTestCase {
         XCTAssertTrue(try shellOut(to: "ls -a", at: packagePath).contains("SwiftPackageManagerTest.xcodeproj"))
     }
 }
+#endif

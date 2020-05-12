@@ -3,7 +3,7 @@
  *  Copyright (c) John Sundell 2017
  *  Licensed under the MIT license. See LICENSE file.
  */
-
+#if os(macOS) || os(Linux)
 import Foundation
 import Dispatch
 
@@ -497,3 +497,4 @@ private extension String {
         self = appending(arguments: arguments)
     }
 }
+#endif

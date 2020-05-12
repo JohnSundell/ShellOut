@@ -131,7 +131,7 @@ public extension ShellOutCommand {
     }
 
     /// Clone a git repository at a given URL
-    static func gitClone(url: URL, to path: String? = nil, allowingPrompt: Bool = false) -> ShellOutCommand {
+    static func gitClone(url: URL, to path: String? = nil, allowingPrompt: Bool = true) -> ShellOutCommand {
         var command = "\(git(allowingPrompt: allowingPrompt)) clone \(url.absoluteString)"
         path.map { command.append(argument: $0) }
         command.append(" --quiet")
@@ -140,7 +140,7 @@ public extension ShellOutCommand {
     }
 
     /// Create a git commit with a given message (also adds all untracked file to the index)
-    static func gitCommit(message: String, allowingPrompt: Bool = false) -> ShellOutCommand {
+    static func gitCommit(message: String, allowingPrompt: Bool = true) -> ShellOutCommand {
         var command = "\(git(allowingPrompt: allowingPrompt)) add . && git commit -a -m"
         command.append(argument: message)
         command.append(" --quiet")
@@ -149,7 +149,7 @@ public extension ShellOutCommand {
     }
 
     /// Perform a git push
-    static func gitPush(remote: String? = nil, branch: String? = nil, allowingPrompt: Bool = false) -> ShellOutCommand {
+    static func gitPush(remote: String? = nil, branch: String? = nil, allowingPrompt: Bool = true) -> ShellOutCommand {
         var command = "\(git(allowingPrompt: allowingPrompt)) push"
         remote.map { command.append(argument: $0) }
         branch.map { command.append(argument: $0) }
@@ -159,7 +159,7 @@ public extension ShellOutCommand {
     }
 
     /// Perform a git pull
-    static func gitPull(remote: String? = nil, branch: String? = nil, allowingPrompt: Bool = false) -> ShellOutCommand {
+    static func gitPull(remote: String? = nil, branch: String? = nil, allowingPrompt: Bool = true) -> ShellOutCommand {
         var command = "\(git(allowingPrompt: allowingPrompt)) pull"
         remote.map { command.append(argument: $0) }
         branch.map { command.append(argument: $0) }
@@ -169,7 +169,7 @@ public extension ShellOutCommand {
     }
 
     /// Run a git submodule update
-    static func gitSubmoduleUpdate(initializeIfNeeded: Bool = true, recursive: Bool = true, allowingPrompt: Bool = false) -> ShellOutCommand {
+    static func gitSubmoduleUpdate(initializeIfNeeded: Bool = true, recursive: Bool = true, allowingPrompt: Bool = true) -> ShellOutCommand {
         var command = "\(git(allowingPrompt: allowingPrompt)) submodule update"
 
         if initializeIfNeeded {

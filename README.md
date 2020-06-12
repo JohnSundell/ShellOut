@@ -81,6 +81,7 @@ try shellOut(to: .updateSwiftPackages())
 try shellOut(to: .generateSwiftPackageXcodeProject())
 try shellOut(to: .buildSwiftPackage())
 try shellOut(to: .testSwiftPackage())
+try shellOut(to: .cleanSwiftArtifacts())
 ```
 
 ### Use [fastlane](https://fastlane.tools)

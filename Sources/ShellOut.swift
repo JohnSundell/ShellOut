@@ -321,6 +321,11 @@ public extension ShellOutCommand {
     static func testSwiftPackage(withConfiguration configuration: SwiftBuildConfiguration = .debug) -> ShellOutCommand {
         return ShellOutCommand(string: "swift test -c \(configuration.rawValue)")
     }
+    
+    /// Delete build artifacts of a Swift Package.
+    static func cleanSwiftArtifacts() -> ShellOutCommand {
+        return ShellOutCommand(string: "swift package clean")
+    }
 }
 
 /// Fastlane commands

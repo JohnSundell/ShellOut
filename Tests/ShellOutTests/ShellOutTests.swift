@@ -153,6 +153,35 @@ class ShellOutTests: XCTestCase {
         // Pull the commit in the clone repository and read the file again
         try shellOut(to: .gitPull(), at: clonePath)
         XCTAssertEqual(try shellOut(to: .readFile(at: filePath)), "Hello again")
+
+        // Create and commit a new file in a separate branch
+        try shellOut(to: .gitCheckout(branch: "branch", createIfNeeded: true), at: clonePath)
+        try shellOut(to: .createFile(named: "BranchTest", contents: "Hello branch"), at: clonePath)
+        try shellOut(to: .gitCommit(message: "Commit"), at: clonePath)
+
+        // Make a new commit on the main branch (so merge cannot fast-forward)
+        try shellOut(to: .gitCheckout(branch: "master"), at: clonePath)
+        try shellOut(to: .createFile(named: "Test", contents: "Hello a third time"), at: clonePath)
+        try shellOut(to: .gitCommit(message: "Commit"), at: clonePath)
+
+        // Attempt merge without committing
+        let branchFilePath = clonePath + "/BranchTest"
+        try shellOut(to: .gitMerge(branch: "branch", commitImmediately: false), at: clonePath)
+        XCTAssertEqual(try shellOut(to: .readFile(at: branchFilePath)), "Hello branch")
+        try shellOut(to: .gitReset(to: "HEAD", hardReset: true), at: clonePath)
+        XCTAssertThrowsError(try shellOut(to: .readFile(at: branchFilePath)), "Hello branch") {
+            guard let error = $0 as? ShellOutError else {
+                XCTFail()
+                return
+            }
+            XCTAssert(error.message.hasSuffix("GitTestClone/BranchTest: No such file or directory"))
+        }
+
+        // Merge and commit
+        try shellOut(to: .gitMerge(branch: "branch"), at: clonePath)
+        XCTAssertEqual(try shellOut(to: .readFile(at: branchFilePath)), "Hello branch")
+        try shellOut(to: .gitReset(to: "HEAD", hardReset: true), at: clonePath)
+        XCTAssertEqual(try shellOut(to: .readFile(at: branchFilePath)), "Hello branch")
     }
 
     func testSwiftPackageManagerCommands() throws {

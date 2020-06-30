@@ -185,9 +185,26 @@ public extension ShellOutCommand {
     }
 
     /// Checkout a given git branch
-    static func gitCheckout(branch: String) -> ShellOutCommand {
-        let command = "git checkout".appending(argument: branch)
+    static func gitCheckout(branch: String, createIfNeeded: Bool = false) -> ShellOutCommand {
+        let command = "git checkout".appending(createIfNeeded ? " -b" : "")
+                                    .appending(argument: branch)
                                     .appending(" --quiet")
+
+        return ShellOutCommand(string: command)
+    }
+
+    /// Merge a given branch into the currently checked-out git branch
+    static func gitMerge(branch: String, commitImmediately: Bool = true) -> ShellOutCommand {
+        let command = "git merge".appending(argument: branch)
+                                 .appending(commitImmediately ? "" : " --no-commit")
+
+        return ShellOutCommand(string: command)
+    }
+
+    /// Resets the current HEAD to the given ref.
+    static func gitReset(to ref: String, hardReset: Bool = false) -> ShellOutCommand {
+        let command = "git reset".appending(hardReset ? " --hard" : "")
+                                 .appending(argument: ref)
 
         return ShellOutCommand(string: command)
     }

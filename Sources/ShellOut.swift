@@ -199,6 +199,13 @@ public extension ShellOutCommand {
 
         return ShellOutCommand(string: command)
     }
+    
+    ///  Get all tags
+    static func gitTagList() -> ShellOutCommand {
+        let command = "git tag --list"
+        
+        return ShellOutCommand(string: command)
+    }
 
     private static func git(allowingPrompt: Bool) -> String {
         return allowingPrompt ? "git" : "env GIT_TERMINAL_PROMPT=0 git"

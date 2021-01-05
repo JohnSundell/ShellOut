@@ -153,6 +153,12 @@ class ShellOutTests: XCTestCase {
         // Pull the commit in the clone repository and read the file again
         try shellOut(to: .gitPull(), at: clonePath)
         XCTAssertEqual(try shellOut(to: .readFile(at: filePath)), "Hello again")
+        
+        // Tag the commit in the origin repository and verify it exists
+        try shellOut(to: .gitTag(name: "v1.0.1"), at: originPath)
+        try shellOut(to: .gitPull(), at: clonePath)
+        let tagList = try shellOut(to: .gitTagList(), at: clonePath)
+        XCTAssert(tagList.contains("v1.0.1"))
     }
 
     func testSwiftPackageManagerCommands() throws {

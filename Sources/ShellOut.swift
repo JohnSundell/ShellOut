@@ -157,10 +157,15 @@ public extension ShellOutCommand {
     }
 
     /// Perform a git push
-    static func gitPush(remote: String? = nil, branch: String? = nil, allowingPrompt: Bool = true) -> ShellOutCommand {
+    static func gitPush(remote: String? = nil, branch: String? = nil, allTags: Bool = false, allowingPrompt: Bool = true) -> ShellOutCommand {
         var command = "\(git(allowingPrompt: allowingPrompt)) push"
         remote.map { command.append(argument: $0) }
         branch.map { command.append(argument: $0) }
+
+        if allTags {
+            command.append(" --tags")
+        }
+
         command.append(" --quiet")
 
         return ShellOutCommand(string: command)

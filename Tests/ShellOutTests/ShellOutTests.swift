@@ -131,7 +131,7 @@ class ShellOutTests: XCTestCase {
         try shellOut(to: "rm -rf GitTestOrigin", at: tempFolderPath)
         try shellOut(to: "rm -rf GitTestClone", at: tempFolderPath)
 
-        // Create a origin repository and make a commit with a file
+        // Create an origin repository and make a commit with a file
         let originPath = tempFolderPath + "/GitTestOrigin"
         try shellOut(to: .createFolder(named: "GitTestOrigin"), at: tempFolderPath)
         try shellOut(to: .gitInit(), at: originPath)

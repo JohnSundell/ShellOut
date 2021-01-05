@@ -170,6 +170,16 @@ public extension ShellOutCommand {
 
         return ShellOutCommand(string: command)
     }
+    
+    /// Push a single git tag
+    static func gitPush(remote: String, tag: String, allowingPrompt: Bool = true) -> ShellOutCommand {
+        var command = "\(git(allowingPrompt: allowingPrompt)) push"
+        command.append(argument: remote)
+        command.append(argument: "tag \(tag)")
+        command.append(" --quiet")
+
+        return ShellOutCommand(string: command)
+    }
 
     /// Perform a git pull
     static func gitPull(remote: String? = nil, branch: String? = nil, allowingPrompt: Bool = true) -> ShellOutCommand {

@@ -33,14 +33,16 @@ import Dispatch
     at path: String = ".",
     process: Process = .init(),
     outputHandle: FileHandle? = nil,
-    errorHandle: FileHandle? = nil
+    errorHandle: FileHandle? = nil,
+    shellType: ShellType = .bashPath
 ) throws -> String {
     let command = "cd \(path.escapingSpaces) && \(command) \(arguments.joined(separator: " "))"
 
     return try process.launchBash(
         with: command,
         outputHandle: outputHandle,
-        errorHandle: errorHandle
+        errorHandle: errorHandle,
+        shellType: shellType
     )
 }
 
@@ -101,14 +103,16 @@ import Dispatch
     at path: String = ".",
     process: Process = .init(),
     outputHandle: FileHandle? = nil,
-    errorHandle: FileHandle? = nil
+    errorHandle: FileHandle? = nil,
+    shellType: ShellType = .bashPath
 ) throws -> String {
     return try shellOut(
         to: command.string,
         at: path,
         process: process,
         outputHandle: outputHandle,
-        errorHandle: errorHandle
+        errorHandle: errorHandle,
+        shellType: shellType
     )
 }
 
@@ -121,6 +125,12 @@ public struct ShellOutCommand {
     public init(string: String) {
         self.string = string
     }
+}
+
+/// Used to specify the path of which shell to use. Default is set to Bash.
+public enum ShellType: String {
+    case bashPath = "/bin/bash"
+    case zshPath = "/bin/zsh"
 }
 
 /// Git commands
@@ -379,8 +389,14 @@ extension ShellOutError: LocalizedError {
 // MARK: - Private
 
 private extension Process {
-    @discardableResult func launchBash(with command: String, outputHandle: FileHandle? = nil, errorHandle: FileHandle? = nil) throws -> String {
-        launchPath = "/bin/bash"
+    @discardableResult func launchBash(with command: String, outputHandle: FileHandle? = nil, errorHandle: FileHandle? = nil, shellType: ShellType = .bashPath) throws -> String {
+        // Default shell path is set to Bash
+        launchPath = ShellType.bashPath.rawValue
+        
+        if shellType == .zshPath {
+            launchPath = shellType.rawValue
+        }
+        
         arguments = ["-c", command]
 
         // Because FileHandle's readabilityHandler might be called from a

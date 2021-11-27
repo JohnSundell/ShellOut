@@ -174,4 +174,24 @@ class ShellOutTests: XCTestCase {
         try shellOut(to: .generateSwiftPackageXcodeProject(), at: packagePath)
         XCTAssertTrue(try shellOut(to: "ls -a", at: packagePath).contains("SwiftPackageManagerTest.xcodeproj"))
     }
+    
+    func testZshShellCommands() throws {
+        // Check current shell type
+        let bashNameEcho = try shellOut(to: "echo $0")
+        XCTAssertEqual(bashNameEcho, "/bin/bash")
+        
+        let zshNameEcho = try shellOut(to: "echo $0", shellType: .zshPath)
+        XCTAssertEqual(zshNameEcho, "/bin/zsh")
+        
+        // Test with arguments
+        let echo = try shellOut(to: "echo", arguments: ["Hello world"], shellType: .zshPath)
+        XCTAssertEqual(echo, "Hello world")
+
+        // Test with single command at path
+        try shellOut(to: "echo \"Hello\" > \(NSTemporaryDirectory())ShellOutTests-SingleCommand.txt", shellType: .zshPath)
+        let textFileContent = try shellOut(to: "cat ShellOutTests-SingleCommand.txt",
+                                           at: NSTemporaryDirectory(), shellType: .zshPath)
+
+        XCTAssertEqual(textFileContent, "Hello")
+    }
 }

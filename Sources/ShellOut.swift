@@ -380,7 +380,11 @@ extension ShellOutError: LocalizedError {
 
 private extension Process {
     @discardableResult func launchBash(with command: String, outputHandle: FileHandle? = nil, errorHandle: FileHandle? = nil) throws -> String {
+        #if os(Linux)
+        executableURL = URL(fileURLWithPath: "/bin/bash")
+        #else
         launchPath = "/bin/bash"
+        #endif
         arguments = ["-c", command]
 
         // Because FileHandle's readabilityHandler might be called from a
@@ -416,7 +420,11 @@ private extension Process {
         }
         #endif
 
+        #if os(Linux)
+        try run()
+        #else
         launch()
+        #endif
 
         #if os(Linux)
         outputQueue.sync {

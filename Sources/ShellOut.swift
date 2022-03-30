@@ -391,12 +391,7 @@ extension ShellOutError: LocalizedError {
 private extension Process {
     @discardableResult func launchBash(with command: String, outputHandle: FileHandle? = nil, errorHandle: FileHandle? = nil, shellType: ShellType = .bashPath) throws -> String {
         // Default shell path is set to Bash
-        launchPath = ShellType.bashPath.rawValue
-        
-        if shellType == .zshPath {
-            launchPath = shellType.rawValue
-        }
-        
+        launchPath = shellType.rawValue
         arguments = ["-c", command]
 
         // Because FileHandle's readabilityHandler might be called from a

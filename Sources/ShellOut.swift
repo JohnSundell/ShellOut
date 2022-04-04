@@ -131,45 +131,57 @@ public extension ShellOutCommand {
     }
 
     /// Clone a git repository at a given URL
-    static func gitClone(url: URL, to path: String? = nil, allowingPrompt: Bool = true) -> ShellOutCommand {
+    static func gitClone(url: URL, to path: String? = nil, allowingPrompt: Bool = true, quiet: Bool = true) -> ShellOutCommand {
         var command = "\(git(allowingPrompt: allowingPrompt)) clone \(url.absoluteString)"
         path.map { command.append(argument: $0) }
-        command.append(" --quiet")
+
+        if quiet {
+            command.append(" --quiet")
+        }
 
         return ShellOutCommand(string: command)
     }
 
     /// Create a git commit with a given message (also adds all untracked file to the index)
-    static func gitCommit(message: String, allowingPrompt: Bool = true) -> ShellOutCommand {
+    static func gitCommit(message: String, allowingPrompt: Bool = true, quiet: Bool = true) -> ShellOutCommand {
         var command = "\(git(allowingPrompt: allowingPrompt)) add . && git commit -a -m"
         command.append(argument: message)
-        command.append(" --quiet")
+
+        if quiet {
+            command.append(" --quiet")
+        }
 
         return ShellOutCommand(string: command)
     }
 
     /// Perform a git push
-    static func gitPush(remote: String? = nil, branch: String? = nil, allowingPrompt: Bool = true) -> ShellOutCommand {
+    static func gitPush(remote: String? = nil, branch: String? = nil, allowingPrompt: Bool = true, quiet: Bool = true) -> ShellOutCommand {
         var command = "\(git(allowingPrompt: allowingPrompt)) push"
         remote.map { command.append(argument: $0) }
         branch.map { command.append(argument: $0) }
-        command.append(" --quiet")
+
+        if quiet {
+            command.append(" --quiet")
+        }
 
         return ShellOutCommand(string: command)
     }
 
     /// Perform a git pull
-    static func gitPull(remote: String? = nil, branch: String? = nil, allowingPrompt: Bool = true) -> ShellOutCommand {
+    static func gitPull(remote: String? = nil, branch: String? = nil, allowingPrompt: Bool = true, quiet: Bool = true) -> ShellOutCommand {
         var command = "\(git(allowingPrompt: allowingPrompt)) pull"
         remote.map { command.append(argument: $0) }
         branch.map { command.append(argument: $0) }
-        command.append(" --quiet")
+
+        if quiet {
+            command.append(" --quiet")
+        }
 
         return ShellOutCommand(string: command)
     }
 
     /// Run a git submodule update
-    static func gitSubmoduleUpdate(initializeIfNeeded: Bool = true, recursive: Bool = true, allowingPrompt: Bool = true) -> ShellOutCommand {
+    static func gitSubmoduleUpdate(initializeIfNeeded: Bool = true, recursive: Bool = true, allowingPrompt: Bool = true, quiet: Bool = true) -> ShellOutCommand {
         var command = "\(git(allowingPrompt: allowingPrompt)) submodule update"
 
         if initializeIfNeeded {
@@ -180,14 +192,20 @@ public extension ShellOutCommand {
             command.append(" --recursive")
         }
 
-        command.append(" --quiet")
+        if quiet {
+            command.append(" --quiet")
+        }
+
         return ShellOutCommand(string: command)
     }
 
     /// Checkout a given git branch
-    static func gitCheckout(branch: String) -> ShellOutCommand {
-        let command = "git checkout".appending(argument: branch)
-                                    .appending(" --quiet")
+    static func gitCheckout(branch: String, quiet: Bool = true) -> ShellOutCommand {
+        var command = "git checkout".appending(argument: branch)
+
+        if quiet {
+            command.append(" --quiet")
+        }
 
         return ShellOutCommand(string: command)
     }

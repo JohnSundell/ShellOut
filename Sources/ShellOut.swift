@@ -20,6 +20,7 @@ import Dispatch
  *              (at the moment this is only supported on macOS)
  *  - parameter errorHandle: Any `FileHandle` that any error output (STDERR) should be redirected to
  *              (at the moment this is only supported on macOS)
+ *  - parameter environment: The environment for the command.
  *
  *  - returns: The output of running the command
  *  - throws: `ShellOutError` in case the command couldn't be performed, or it returned an error
@@ -33,14 +34,16 @@ import Dispatch
     at path: String = ".",
     process: Process = .init(),
     outputHandle: FileHandle? = nil,
-    errorHandle: FileHandle? = nil
+    errorHandle: FileHandle? = nil,
+    environment: [String : String]? = nil
 ) throws -> String {
     let command = "cd \(path.escapingSpaces) && \(command) \(arguments.joined(separator: " "))"
 
     return try process.launchBash(
         with: command,
         outputHandle: outputHandle,
-        errorHandle: errorHandle
+        errorHandle: errorHandle,
+        environment: environment
     )
 }
 
@@ -54,6 +57,7 @@ import Dispatch
  *              (at the moment this is only supported on macOS)
  *  - parameter errorHandle: Any `FileHandle` that any error output (STDERR) should be redirected to
  *              (at the moment this is only supported on macOS)
+ *  - parameter environment: The environment for the command.
  *
  *  - returns: The output of running the command
  *  - throws: `ShellOutError` in case the command couldn't be performed, or it returned an error
@@ -66,7 +70,8 @@ import Dispatch
     at path: String = ".",
     process: Process = .init(),
     outputHandle: FileHandle? = nil,
-    errorHandle: FileHandle? = nil
+    errorHandle: FileHandle? = nil,
+    environment: [String : String]? = nil
 ) throws -> String {
     let command = commands.joined(separator: " && ")
 
@@ -75,7 +80,8 @@ import Dispatch
         at: path,
         process: process,
         outputHandle: outputHandle,
-        errorHandle: errorHandle
+        errorHandle: errorHandle,
+        environment: environment
     )
 }
 
@@ -87,6 +93,7 @@ import Dispatch
  *  - parameter process: Which process to use to perform the command (default: A new one)
  *  - parameter outputHandle: Any `FileHandle` that any output (STDOUT) should be redirected to
  *  - parameter errorHandle: Any `FileHandle` that any error output (STDERR) should be redirected to
+ *  - parameter environment: The environment for the command.
  *
  *  - returns: The output of running the command
  *  - throws: `ShellOutError` in case the command couldn't be performed, or it returned an error
@@ -101,14 +108,16 @@ import Dispatch
     at path: String = ".",
     process: Process = .init(),
     outputHandle: FileHandle? = nil,
-    errorHandle: FileHandle? = nil
+    errorHandle: FileHandle? = nil,
+    environment: [String : String]? = nil
 ) throws -> String {
     return try shellOut(
         to: command.string,
         at: path,
         process: process,
         outputHandle: outputHandle,
-        errorHandle: errorHandle
+        errorHandle: errorHandle,
+        environment: environment
     )
 }
 
@@ -397,9 +406,13 @@ extension ShellOutError: LocalizedError {
 // MARK: - Private
 
 private extension Process {
-    @discardableResult func launchBash(with command: String, outputHandle: FileHandle? = nil, errorHandle: FileHandle? = nil) throws -> String {
+    @discardableResult func launchBash(with command: String, outputHandle: FileHandle? = nil, errorHandle: FileHandle? = nil, environment: [String : String]? = nil) throws -> String {
         launchPath = "/bin/bash"
         arguments = ["-c", command]
+
+        if let environment = environment {
+            self.environment = environment
+        }
 
         // Because FileHandle's readabilityHandler might be called from a
         // different queue from the calling queue, avoid a data race by

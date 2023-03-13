@@ -174,4 +174,9 @@ class ShellOutTests: XCTestCase {
         try shellOut(to: .generateSwiftPackageXcodeProject(), at: packagePath)
         XCTAssertTrue(try shellOut(to: "ls -a", at: packagePath).contains("SwiftPackageManagerTest.xcodeproj"))
     }
+
+    func testArgumentQuoting() throws {
+        XCTAssertEqual(try shellOut(to: "echo", arguments: ["foo ; echo bar"]), "foo ; echo bar")
+        XCTAssertEqual(try shellOut(to: "echo", arguments: ["foo ; echo bar"], quoteArguments: false), "foo\nbar")
+    }
 }

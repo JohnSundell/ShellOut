@@ -6,6 +6,7 @@
 
 import Foundation
 import Dispatch
+import ShellQuote
 
 // MARK: - API
 
@@ -35,8 +36,11 @@ import Dispatch
     process: Process = .init(),
     outputHandle: FileHandle? = nil,
     errorHandle: FileHandle? = nil,
-    environment: [String : String]? = nil
+    environment: [String : String]? = nil,
+    quoteArguments: Bool = true
 ) throws -> String {
+    let arguments = quoteArguments ? arguments.map(ShellQuote.quote) : arguments
+    print("*** arguments: ", arguments)
     let command = "cd \(path.escapingSpaces) && \(command) \(arguments.joined(separator: " "))"
 
     return try process.launchBash(

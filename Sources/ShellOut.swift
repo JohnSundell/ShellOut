@@ -35,8 +35,7 @@ import Dispatch
     process: Process = .init(),
     outputHandle: FileHandle? = nil,
     errorHandle: FileHandle? = nil,
-    environment: [String : String]? = nil,
-    quoteArguments: Bool = true
+    environment: [String : String]? = nil
 ) throws -> String {
     let command = "cd \(path.escapingSpaces) && \(command) \(arguments.map(\.string).joined(separator: " "))"
 
@@ -81,8 +80,7 @@ import Dispatch
         process: process,
         outputHandle: outputHandle,
         errorHandle: errorHandle,
-        environment: environment,
-        quoteArguments: false
+        environment: environment
     )
 }
 

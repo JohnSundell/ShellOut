@@ -22,8 +22,8 @@ extension SafeString: CustomStringConvertible {
 
 
 extension String {
-    var checked: SafeString {
+    public var checked: SafeString {
         get throws { try .init(self) }
     }
-    var unchecked: SafeString { .init(unchecked: self) }
+    public var unchecked: SafeString { .init(unchecked: self) }
 }

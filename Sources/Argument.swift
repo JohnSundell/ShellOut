@@ -22,12 +22,12 @@ public enum Argument {
 
 
 extension String {
-    var quoted: Argument { .init(quoted: self) }
-    var verbatim: Argument { .init(verbatim: self) }
+    public var quoted: Argument { .init(quoted: self) }
+    public var verbatim: Argument { .init(verbatim: self) }
 }
 
 
 extension Array<String> {
-    var quoted: [Argument] { map(\.quoted) }
-    var verbatim: [Argument] { map(\.verbatim) }
+    public var quoted: [Argument] { map(\.quoted) }
+    public var verbatim: [Argument] { map(\.verbatim) }
 }

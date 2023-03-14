@@ -19,3 +19,11 @@ public struct SafeString {
 extension SafeString: CustomStringConvertible {
     public var description: String { value }
 }
+
+
+extension String {
+    var safe: SafeString {
+        get throws { try .init(self) }
+    }
+    var unchecked: SafeString { .init(unchecked: self) }
+}

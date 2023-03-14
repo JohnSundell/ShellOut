@@ -35,7 +35,6 @@ public enum Argument {
 extension String {
     var quoted: Argument { .init(quoted: self) }
     var verbatim: Argument { .init(verbatim: self) }
-    func safe() throws -> SafeString { try .init(self) }
 }
 
 

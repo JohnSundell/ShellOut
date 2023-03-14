@@ -101,24 +101,24 @@ public struct ShellOutCommand {
         self.arguments = arguments
     }
 
-    var string: String {
+    public var string: String {
         ([command.value] + arguments.map(\.string))
             .joined(separator: " ")
     }
 
-    func appending(arguments newArguments: [Argument]) -> Self {
+    public func appending(arguments newArguments: [Argument]) -> Self {
         .init(command: command, arguments: arguments + newArguments)
     }
 
-    func appending(argument: Argument) -> Self {
+    public func appending(argument: Argument) -> Self {
         appending(arguments: [argument])
     }
 
-    mutating func append(arguments newArguments: [Argument]) {
+    public mutating func append(arguments newArguments: [Argument]) {
         self.arguments = self.arguments + newArguments
     }
 
-    mutating func append(argument: Argument) {
+    public mutating func append(argument: Argument) {
         append(arguments: [argument])
     }
 }

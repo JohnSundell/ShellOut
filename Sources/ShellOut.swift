@@ -79,24 +79,60 @@ import ShellQuote
     errorHandle: FileHandle? = nil,
     environment: [String : String]? = nil
 ) throws -> String {
-    return try shellOut(
-        to: command.string,
+    try shellOut(
+        to: command.command,
+        arguments: command.arguments,
         at: path,
         process: process,
         outputHandle: outputHandle,
         errorHandle: errorHandle,
-        environment: environment
+        environment: environment,
+        quoteArguments: false
     )
 }
 
 /// Structure used to pre-define commands for use with ShellOut
 public struct ShellOutCommand {
     /// The string that makes up the command that should be run on the command line
-    public var string: String
+    public var command: String
+
+    public var arguments: [String]
 
     /// Initialize a value using a string that makes up the underlying command
-    public init(string: String) {
-        self.string = string
+    public init(command: String, arguments: [String] = [], quoteArguments: Bool = true) throws {
+        guard !ShellQuote.hasUnsafeContent(command) else {
+            throw ShellOutCommand.Error(message: "Command must not contain characters that require quoting, was: \(command)")
+        }
+
+        self.command = command
+        self.arguments = quoteArguments ? arguments.map(ShellQuote.quote) : arguments
+    }
+
+    public init(safeCommand: String, arguments: [String] = [], quoteArguments: Bool = true) {
+        self.command = safeCommand
+        self.arguments = quoteArguments ? arguments.map(ShellQuote.quote) : arguments
+    }
+
+    var string: String { ([command] + arguments).joined(separator: " ") }
+
+    func appending(arguments: [String], quoteArguments: Bool = true) -> Self {
+        .init(
+            safeCommand: self.command,
+            arguments: self.arguments + (quoteArguments ? arguments.map(ShellQuote.quote) : arguments),
+            quoteArguments: false
+        )
+    }
+
+    func appending(argument: String, quoteArguments: Bool = true) -> Self {
+        appending(arguments: [argument], quoteArguments: quoteArguments)
+    }
+
+    mutating func append(arguments: [String], quoteArguments: Bool = true) {
+        self.arguments = self.arguments + (quoteArguments ? arguments.map(ShellQuote.quote) : arguments)
+    }
+
+    mutating func append(argument: String, quoteArguments: Bool = true) {
+        append(arguments: [argument], quoteArguments: quoteArguments)
     }
 }
 
@@ -104,91 +140,100 @@ public struct ShellOutCommand {
 public extension ShellOutCommand {
     /// Initialize a git repository
     static func gitInit() -> ShellOutCommand {
-        return ShellOutCommand(string: "git init")
+        return ShellOutCommand(safeCommand: "git", arguments: ["init"])
     }
 
     /// Clone a git repository at a given URL
     static func gitClone(url: URL, to path: String? = nil, allowingPrompt: Bool = true, quiet: Bool = true) -> ShellOutCommand {
-        var command = "\(git(allowingPrompt: allowingPrompt)) clone \(url.absoluteString)"
+        var command = git(allowingPrompt: allowingPrompt)
+            .appending(arguments: ["clone", url.absoluteString])
+
         path.map { command.append(argument: $0) }
 
         if quiet {
-            command.append(" --quiet")
+            command.append(argument: "--quiet")
         }
 
-        return ShellOutCommand(string: command)
+        return command
     }
 
     /// Create a git commit with a given message (also adds all untracked file to the index)
     static func gitCommit(message: String, allowingPrompt: Bool = true, quiet: Bool = true) -> ShellOutCommand {
-        var command = "\(git(allowingPrompt: allowingPrompt)) add . && git commit -a -m"
+        var command = git(allowingPrompt: allowingPrompt)
+            .appending(arguments: ["add . && git commit -a -m"], quoteArguments: false)
         command.append(argument: message)
 
         if quiet {
-            command.append(" --quiet")
+            command.append(argument: "--quiet")
         }
 
-        return ShellOutCommand(string: command)
+        return command
     }
 
     /// Perform a git push
     static func gitPush(remote: String? = nil, branch: String? = nil, allowingPrompt: Bool = true, quiet: Bool = true) -> ShellOutCommand {
-        var command = "\(git(allowingPrompt: allowingPrompt)) push"
+        var command = git(allowingPrompt: allowingPrompt)
+            .appending(arguments: ["push"])
         remote.map { command.append(argument: $0) }
         branch.map { command.append(argument: $0) }
 
         if quiet {
-            command.append(" --quiet")
+            command.append(argument: "--quiet")
         }
 
-        return ShellOutCommand(string: command)
+        return command
     }
 
     /// Perform a git pull
     static func gitPull(remote: String? = nil, branch: String? = nil, allowingPrompt: Bool = true, quiet: Bool = true) -> ShellOutCommand {
-        var command = "\(git(allowingPrompt: allowingPrompt)) pull"
+        var command = git(allowingPrompt: allowingPrompt)
+            .appending(arguments: ["pull"])
         remote.map { command.append(argument: $0) }
         branch.map { command.append(argument: $0) }
 
         if quiet {
-            command.append(" --quiet")
+            command.append(argument: "--quiet")
         }
 
-        return ShellOutCommand(string: command)
+        return command
     }
 
     /// Run a git submodule update
     static func gitSubmoduleUpdate(initializeIfNeeded: Bool = true, recursive: Bool = true, allowingPrompt: Bool = true, quiet: Bool = true) -> ShellOutCommand {
-        var command = "\(git(allowingPrompt: allowingPrompt)) submodule update"
+        var command = git(allowingPrompt: allowingPrompt)
+            .appending(arguments: ["submodule update"], quoteArguments: false)
 
         if initializeIfNeeded {
-            command.append(" --init")
+            command.append(argument: "--init")
         }
 
         if recursive {
-            command.append(" --recursive")
+            command.append(argument: "--recursive")
         }
 
         if quiet {
-            command.append(" --quiet")
+            command.append(argument: "--quiet")
         }
 
-        return ShellOutCommand(string: command)
+        return command
     }
 
     /// Checkout a given git branch
     static func gitCheckout(branch: String, quiet: Bool = true) -> ShellOutCommand {
-        var command = "git checkout".appending(argument: branch)
+        var command = ShellOutCommand(safeCommand: "git", arguments: ["checkout", branch])
 
         if quiet {
-            command.append(" --quiet")
+            command.append(argument: "--quiet")
         }
 
-        return ShellOutCommand(string: command)
+        return command
     }
 
-    private static func git(allowingPrompt: Bool) -> String {
-        return allowingPrompt ? "git" : "env GIT_TERMINAL_PROMPT=0 git"
+    private static func git(allowingPrompt: Bool) -> Self {
+        allowingPrompt
+        ? .init(safeCommand: "git")
+        : .init(safeCommand: "env", arguments: ["GIT_TERMINAL_PROMPT=0", "git"])
+
     }
 }
 
@@ -196,68 +241,49 @@ public extension ShellOutCommand {
 public extension ShellOutCommand {
     /// Create a folder with a given name
     static func createFolder(named name: String) -> ShellOutCommand {
-        let command = "mkdir".appending(argument: name)
-        return ShellOutCommand(string: command)
+        .init(safeCommand: "mkdir", arguments: [name])
     }
 
     /// Create a file with a given name and contents (will overwrite any existing file with the same name)
     static func createFile(named name: String, contents: String) -> ShellOutCommand {
-        var command = "echo"
-        command.append(argument: contents)
-        command.append(" > ")
-        command.append(argument: name)
-
-        return ShellOutCommand(string: command)
+        .init(safeCommand: "echo", arguments: [contents])
+        .appending(argument: ">", quoteArguments: false)
+        .appending(argument: name)
     }
 
     /// Move a file from one path to another
     static func moveFile(from originPath: String, to targetPath: String) -> ShellOutCommand {
-        let command = "mv".appending(argument: originPath)
-                          .appending(argument: targetPath)
-
-        return ShellOutCommand(string: command)
+        .init(safeCommand: "mv", arguments: [originPath, targetPath])
     }
     
     /// Copy a file from one path to another
     static func copyFile(from originPath: String, to targetPath: String) -> ShellOutCommand {
-        let command = "cp".appending(argument: originPath)
-                          .appending(argument: targetPath)
-        
-        return ShellOutCommand(string: command)
+        .init(safeCommand: "cp", arguments: [originPath, targetPath])
     }
     
     /// Remove a file
     static func removeFile(from path: String, arguments: [String] = ["-f"]) -> ShellOutCommand {
-        let command = "rm".appending(arguments: arguments)
-                          .appending(argument: path)
-        
-        return ShellOutCommand(string: command)
+        .init(safeCommand: "rm", arguments: arguments + [path])
     }
 
     /// Open a file using its designated application
     static func openFile(at path: String) -> ShellOutCommand {
-        let command = "open".appending(argument: path)
-        return ShellOutCommand(string: command)
+        .init(safeCommand: "open", arguments: [path])
     }
 
     /// Read a file as a string
     static func readFile(at path: String) -> ShellOutCommand {
-        let command = "cat".appending(argument: path)
-        return ShellOutCommand(string: command)
+        .init(safeCommand: "cat", arguments: [path])
     }
 
     /// Create a symlink at a given path, to a given target
     static func createSymlink(to targetPath: String, at linkPath: String) -> ShellOutCommand {
-        let command = "ln -s".appending(argument: targetPath)
-                             .appending(argument: linkPath)
-
-        return ShellOutCommand(string: command)
+        .init(safeCommand: "ln", arguments: ["-s", targetPath, linkPath])
     }
 
     /// Expand a symlink at a given path, returning its target path
     static func expandSymlink(at path: String) -> ShellOutCommand {
-        let command = "readlink".appending(argument: path)
-        return ShellOutCommand(string: command)
+        .init(safeCommand: "readlink", arguments: [path])
     }
 }
 
@@ -265,15 +291,12 @@ public extension ShellOutCommand {
 public extension ShellOutCommand {
     /// Run a Marathon Swift script
     static func runMarathonScript(at path: String, arguments: [String] = []) -> ShellOutCommand {
-        let command = "marathon run".appending(argument: path)
-                                    .appending(arguments: arguments)
-
-        return ShellOutCommand(string: command)
+        .init(safeCommand: "marathon", arguments: ["run", path] + arguments)
     }
 
     /// Update all Swift packages managed by Marathon
     static func updateMarathonPackages() -> ShellOutCommand {
-        return ShellOutCommand(string: "marathon update")
+        .init(safeCommand: "marathon", arguments: ["update"])
     }
 }
 
@@ -293,28 +316,33 @@ public extension ShellOutCommand {
 
     /// Create a Swift package with a given type (see SwiftPackageType for options)
     static func createSwiftPackage(withType type: SwiftPackageType = .library) -> ShellOutCommand {
-        let command = "swift package init --type \(type.rawValue)"
-        return ShellOutCommand(string: command)
+        .init(safeCommand: "swift",
+              arguments: ["package init --type \(type)"],
+              quoteArguments: false)
     }
 
     /// Update all Swift package dependencies
     static func updateSwiftPackages() -> ShellOutCommand {
-        return ShellOutCommand(string: "swift package update")
+        .init(safeCommand: "swift", arguments: ["package", "update"])
     }
 
     /// Generate an Xcode project for a Swift package
     static func generateSwiftPackageXcodeProject() -> ShellOutCommand {
-        return ShellOutCommand(string: "swift package generate-xcodeproj")
+        .init(safeCommand: "swift", arguments: ["package", "generate-xcodeproj"])
     }
 
     /// Build a Swift package using a given configuration (see SwiftBuildConfiguration for options)
     static func buildSwiftPackage(withConfiguration configuration: SwiftBuildConfiguration = .debug) -> ShellOutCommand {
-        return ShellOutCommand(string: "swift build -c \(configuration.rawValue)")
+        .init(safeCommand: "swift",
+              arguments: ["build -c \(configuration)"],
+              quoteArguments: false)
     }
 
     /// Test a Swift package using a given configuration (see SwiftBuildConfiguration for options)
     static func testSwiftPackage(withConfiguration configuration: SwiftBuildConfiguration = .debug) -> ShellOutCommand {
-        return ShellOutCommand(string: "swift test -c \(configuration.rawValue)")
+        .init(safeCommand: "swift",
+              arguments: ["test -c \(configuration)"],
+              quoteArguments: false)
     }
 }
 
@@ -322,8 +350,7 @@ public extension ShellOutCommand {
 public extension ShellOutCommand {
     /// Run Fastlane using a given lane
     static func runFastlane(usingLane lane: String) -> ShellOutCommand {
-        let command = "fastlane".appending(argument: lane)
-        return ShellOutCommand(string: command)
+        .init(safeCommand: "fastlane", arguments: [lane])
     }
 }
 
@@ -331,12 +358,12 @@ public extension ShellOutCommand {
 public extension ShellOutCommand {
     /// Update all CocoaPods dependencies
     static func updateCocoaPods() -> ShellOutCommand {
-        return ShellOutCommand(string: "pod update")
+        .init(safeCommand: "pod", arguments: ["update"])
     }
 
     /// Install all CocoaPods dependencies
     static func installCocoaPods() -> ShellOutCommand {
-        return ShellOutCommand(string: "pod install")
+        .init(safeCommand: "pod", arguments: ["install"])
     }
 }
 

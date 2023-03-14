@@ -8,6 +8,29 @@ import XCTest
 @testable import ShellOut
 
 class ShellOutTests: XCTestCase {
+    func test_appendArguments() throws {
+        var cmd = try ShellOutCommand(command: "foo")
+        XCTAssertEqual(cmd.string, "foo")
+        cmd.append(arguments: [";", "bar"])
+        XCTAssertEqual(cmd.string, "foo ';' bar" )
+        cmd.append(arguments: ["> baz"], quoteArguments: false)
+        XCTAssertEqual(cmd.string, "foo ';' bar > baz" )
+    }
+
+    func test_appendingArguments() throws {
+        let cmd = try ShellOutCommand(command: "foo")
+        XCTAssertEqual(
+            cmd.appending(arguments: [";", "bar"]).string,
+            "foo ';' bar"
+        )
+        XCTAssertEqual(
+            cmd.appending(arguments: [";", "bar"])
+                .appending(arguments: ["> baz"], quoteArguments: false)
+                .string,
+            "foo ';' bar > baz"
+        )
+    }
+
     func testWithoutArguments() throws {
         let uptime = try shellOut(to: "uptime")
         XCTAssertTrue(uptime.contains("load average"))
@@ -104,6 +127,14 @@ class ShellOutTests: XCTestCase {
         }
     }
 
+    func test_createFile() throws {
+        let tempFolderPath = NSTemporaryDirectory()
+        try shellOut(to: .createFile(named: "Test", contents: "Hello world"),
+                     at: tempFolderPath)
+        XCTAssertEqual(try shellOut(to: .readFile(at: tempFolderPath + "Test")),
+                       "Hello world")
+    }
+
     func testGitCommands() throws {
         // Setup & clear state
         let tempFolderPath = NSTemporaryDirectory()
@@ -149,11 +180,16 @@ class ShellOutTests: XCTestCase {
 
         // Build the package and verify that there's a .build folder
         try shellOut(to: .buildSwiftPackage(), at: packagePath)
-        XCTAssertTrue(try shellOut(to: "ls -a", at: packagePath).contains(".build"))
+        XCTAssertTrue(
+            try shellOut(to: "ls", arguments: ["-a"], at: packagePath) .contains(".build")
+        )
 
         // Generate an Xcode project
         try shellOut(to: .generateSwiftPackageXcodeProject(), at: packagePath)
-        XCTAssertTrue(try shellOut(to: "ls -a", at: packagePath).contains("SwiftPackageManagerTest.xcodeproj"))
+        XCTAssertTrue(
+            try shellOut(to: "ls", arguments: ["-a"], at: packagePath)
+                .contains("SwiftPackageManagerTest.xcodeproj")
+        )
     }
 
     func testArgumentQuoting() throws {

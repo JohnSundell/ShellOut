@@ -6,7 +6,6 @@
 
 import Foundation
 import Dispatch
-import ShellQuote
 
 // MARK: - API
 

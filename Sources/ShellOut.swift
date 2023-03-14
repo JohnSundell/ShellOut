@@ -106,8 +106,7 @@ public struct ShellOutCommand {
     }
 
     var string: String {
-        ([Argument(command)] + arguments)
-            .map(\.string)
+        ([command.value] + arguments.map(\.string))
             .joined(separator: " ")
     }
 

@@ -14,7 +14,7 @@ let package = Package(
         .library(name: "ShellOut", targets: ["ShellOut"])
     ],
     dependencies: [
-        .package(url: "https://github.com/SwiftPackageIndex/ShellQuote", from: "1.0.0"),
+        .package(url: "https://github.com/SwiftPackageIndex/ShellQuote", from: "1.0.1"),
     ],
     targets: [
         .target(

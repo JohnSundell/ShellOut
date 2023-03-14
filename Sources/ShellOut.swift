@@ -39,8 +39,10 @@ import ShellQuote
     environment: [String : String]? = nil,
     quoteArguments: Bool = true
 ) throws -> String {
+    guard !ShellQuote.hasUnsafeContent(command) else {
+        throw ShellOutCommand.Error(message: "Command must not contain characters that require quoting.")
+    }
     let arguments = quoteArguments ? arguments.map(ShellQuote.quote) : arguments
-    print("*** arguments: ", arguments)
     let command = "cd \(path.escapingSpaces) && \(command) \(arguments.joined(separator: " "))"
 
     return try process.launchBash(
@@ -404,6 +406,13 @@ extension ShellOutError: CustomStringConvertible {
 extension ShellOutError: LocalizedError {
     public var errorDescription: String? {
         return description
+    }
+}
+
+extension ShellOutCommand {
+    // TODO: consolidate with ShellOutError
+    struct Error: Swift.Error {
+        var message: String
     }
 }
 

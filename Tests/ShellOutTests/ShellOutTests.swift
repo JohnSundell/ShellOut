@@ -18,25 +18,24 @@ class ShellOutTests: XCTestCase {
         XCTAssertEqual(echo, "Hello world")
     }
 
-    func testWithInlineArguments() throws {
-        let echo = try shellOut(to: "echo \"Hello world\"")
-        XCTAssertEqual(echo, "Hello world")
-    }
-
     func testSingleCommandAtPath() throws {
-        try shellOut(to: "echo \"Hello\" > \(NSTemporaryDirectory())ShellOutTests-SingleCommand.txt")
+        try shellOut(to: "echo", arguments: [#"Hello" > \#(NSTemporaryDirectory())ShellOutTests-SingleCommand.txt"#])
 
-        let textFileContent = try shellOut(to: "cat ShellOutTests-SingleCommand.txt",
+        let textFileContent = try shellOut(to: "cat",
+                                           arguments:  ["ShellOutTests-SingleCommand.txt"],
                                            at: NSTemporaryDirectory())
 
         XCTAssertEqual(textFileContent, "Hello")
     }
 
     func testSingleCommandAtPathContainingSpace() throws {
-        try shellOut(to: "mkdir -p \"ShellOut Test Folder\"", at: NSTemporaryDirectory())
-        try shellOut(to: "echo \"Hello\" > File", at: NSTemporaryDirectory() + "ShellOut Test Folder")
+        try shellOut(to: "mkdir", arguments: ["-p", "ShellOut Test Folder"],
+                     at: NSTemporaryDirectory())
+        try shellOut(to: "echo", arguments: ["Hello",  ">",  "File"],
+                     at: NSTemporaryDirectory() + "ShellOut Test Folder")
 
-        let output = try shellOut(to: "cat \(NSTemporaryDirectory())ShellOut\\ Test\\ Folder/File")
+        let output = try shellOut(to: "cat",
+                                  arguments: ["\(NSTemporaryDirectory())ShellOut Test Folder/File"])
         XCTAssertEqual(output, "Hello")
     }
 
@@ -108,8 +107,8 @@ class ShellOutTests: XCTestCase {
     func testGitCommands() throws {
         // Setup & clear state
         let tempFolderPath = NSTemporaryDirectory()
-        try shellOut(to: "rm -rf GitTestOrigin", at: tempFolderPath)
-        try shellOut(to: "rm -rf GitTestClone", at: tempFolderPath)
+        try shellOut(to: "rm", arguments: ["-rf", "GitTestOrigin"], at: tempFolderPath)
+        try shellOut(to: "rm", arguments: ["-rf", "GitTestClone"], at: tempFolderPath)
 
         // Create a origin repository and make a commit with a file
         let originPath = tempFolderPath + "/GitTestOrigin"
@@ -138,7 +137,9 @@ class ShellOutTests: XCTestCase {
     func testSwiftPackageManagerCommands() throws {
         // Setup & clear state
         let tempFolderPath = NSTemporaryDirectory()
-        try shellOut(to: "rm -rf SwiftPackageManagerTest", at: tempFolderPath)
+        try shellOut(to: "rm",
+                     arguments: ["-rf", "SwiftPackageManagerTest"],
+                     at: tempFolderPath)
         try shellOut(to: .createFolder(named: "SwiftPackageManagerTest"), at: tempFolderPath)
 
         // Create a Swift package and verify that it has a Package.swift file

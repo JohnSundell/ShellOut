@@ -40,7 +40,7 @@ import ShellQuote
     quoteArguments: Bool = true
 ) throws -> String {
     guard !ShellQuote.hasUnsafeContent(command) else {
-        throw ShellOutCommand.Error(message: "Command must not contain characters that require quoting.")
+        throw ShellOutCommand.Error(message: "Command must not contain characters that require quoting, was: \(command)")
     }
     let arguments = quoteArguments ? arguments.map(ShellQuote.quote) : arguments
     let command = "cd \(path.escapingSpaces) && \(command) \(arguments.joined(separator: " "))"

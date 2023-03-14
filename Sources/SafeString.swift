@@ -22,7 +22,7 @@ extension SafeString: CustomStringConvertible {
 
 
 extension String {
-    var safe: SafeString {
+    var checked: SafeString {
         get throws { try .init(self) }
     }
     var unchecked: SafeString { .init(unchecked: self) }

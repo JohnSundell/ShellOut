@@ -54,44 +54,6 @@ import ShellQuote
 }
 
 /**
- *  Run a series of shell commands using Bash
- *
- *  - parameter commands: The commands to run
- *  - parameter path: The path to execute the commands at (defaults to current folder)
- *  - parameter process: Which process to use to perform the command (default: A new one)
- *  - parameter outputHandle: Any `FileHandle` that any output (STDOUT) should be redirected to
- *              (at the moment this is only supported on macOS)
- *  - parameter errorHandle: Any `FileHandle` that any error output (STDERR) should be redirected to
- *              (at the moment this is only supported on macOS)
- *  - parameter environment: The environment for the command.
- *
- *  - returns: The output of running the command
- *  - throws: `ShellOutError` in case the command couldn't be performed, or it returned an error
- *
- *  Use this function to "shell out" in a Swift script or command line tool
- *  For example: `shellOut(to: ["mkdir NewFolder", "cd NewFolder"], at: "~/CurrentFolder")`
- */
-@discardableResult public func shellOut(
-    to commands: [String],
-    at path: String = ".",
-    process: Process = .init(),
-    outputHandle: FileHandle? = nil,
-    errorHandle: FileHandle? = nil,
-    environment: [String : String]? = nil
-) throws -> String {
-    let command = commands.joined(separator: " && ")
-
-    return try shellOut(
-        to: command,
-        at: path,
-        process: process,
-        outputHandle: outputHandle,
-        errorHandle: errorHandle,
-        environment: environment
-    )
-}
-
-/**
  *  Run a pre-defined shell command using Bash
  *
  *  - parameter command: The command to run

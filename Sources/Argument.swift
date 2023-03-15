@@ -1,3 +1,6 @@
+import Foundation
+
+
 public enum Argument {
     case quoted(QuotedString)
     case verbatim(String)
@@ -21,8 +24,20 @@ public enum Argument {
 }
 
 
+extension Argument: ExpressibleByStringLiteral {
+    public init(stringLiteral value: StringLiteralType) {
+        self = .quoted(.init(value))
+    }
+}
+
+
 extension Argument: CustomStringConvertible {
     public var description: String { string }
+}
+
+
+extension Argument {
+    public static func url(_ url: URL) -> Self { url.absoluteString.verbatim }
 }
 
 

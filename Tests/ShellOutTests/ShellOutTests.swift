@@ -215,4 +215,14 @@ class ShellOutTests: XCTestCase {
                                     arguments: ["foo ; echo bar".verbatim]),
                        "foo\nbar")
     }
+
+    func test_Argument_ExpressibleByStringLiteral() throws {
+        XCTAssertEqual(("foo" as Argument).string, "foo")
+        XCTAssertEqual(("foo bar" as Argument).string, "'foo bar'")
+    }
+
+    func test_Argument_url() throws {
+        XCTAssertEqual(Argument.url(.init(string: "https://example.com")!).string,
+                       "https://example.com")
+    }
 }

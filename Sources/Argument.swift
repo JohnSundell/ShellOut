@@ -21,6 +21,11 @@ public enum Argument {
 }
 
 
+extension Argument: CustomStringConvertible {
+    public var description: String { string }
+}
+
+
 extension String {
     public var quoted: Argument { .init(quoted: self) }
     public var verbatim: Argument { .init(verbatim: self) }

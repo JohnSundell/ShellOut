@@ -47,7 +47,7 @@ extension String {
 }
 
 
-extension Array<String> {
+extension Array where Element == String {
     public var quoted: [Argument] { map(\.quoted) }
     public var verbatim: [Argument] { map(\.verbatim) }
 }

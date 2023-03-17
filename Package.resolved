@@ -1,7 +1,15 @@
 {
   "object": {
     "pins": [
-
+      {
+        "package": "ShellQuote",
+        "repositoryURL": "https://github.com/SwiftPackageIndex/ShellQuote",
+        "state": {
+          "branch": null,
+          "revision": "5f555550c30ef43d64b36b40c2c291a95d62580c",
+          "version": "1.0.2"
+        }
+      }
     ]
   },
   "version": 1

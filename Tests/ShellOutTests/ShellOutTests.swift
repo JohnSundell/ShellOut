@@ -8,66 +8,75 @@ import XCTest
 @testable import ShellOut
 
 class ShellOutTests: XCTestCase {
+    func test_appendArguments() throws {
+        var cmd = try ShellOutCommand(command: "foo")
+        XCTAssertEqual(cmd.string, "foo")
+        cmd.append(arguments: [";", "bar"].quoted)
+        XCTAssertEqual(cmd.string, "foo ';' bar" )
+        cmd.append(arguments: ["> baz".verbatim])
+        XCTAssertEqual(cmd.string, "foo ';' bar > baz" )
+    }
+
+    func test_appendingArguments() throws {
+        let cmd = try ShellOutCommand(command: "foo")
+        XCTAssertEqual(
+            cmd.appending(arguments: [";", "bar"].quoted).string,
+            "foo ';' bar"
+        )
+        XCTAssertEqual(
+            cmd.appending(arguments: [";", "bar"].quoted)
+                .appending(arguments: ["> baz".verbatim])
+                .string,
+            "foo ';' bar > baz"
+        )
+    }
+
     func testWithoutArguments() throws {
-        let uptime = try shellOut(to: "uptime")
+        let uptime = try shellOut(to: "uptime".checked)
         XCTAssertTrue(uptime.contains("load average"))
     }
 
     func testWithArguments() throws {
-        let echo = try shellOut(to: "echo", arguments: ["Hello world"])
-        XCTAssertEqual(echo, "Hello world")
-    }
-
-    func testWithInlineArguments() throws {
-        let echo = try shellOut(to: "echo \"Hello world\"")
+        let echo = try shellOut(to: "echo".checked, arguments: ["Hello world".quoted])
         XCTAssertEqual(echo, "Hello world")
     }
 
     func testSingleCommandAtPath() throws {
-        try shellOut(to: "echo \"Hello\" > \(NSTemporaryDirectory())ShellOutTests-SingleCommand.txt")
+        try shellOut(
+            to: "echo".checked,
+            arguments: [#"Hello" > \#(NSTemporaryDirectory())ShellOutTests-SingleCommand.txt"#.quoted]
+        )
 
-        let textFileContent = try shellOut(to: "cat ShellOutTests-SingleCommand.txt",
-                                           at: NSTemporaryDirectory())
+        let textFileContent = try shellOut(
+            to: "cat".checked,
+            arguments:  ["ShellOutTests-SingleCommand.txt".quoted],
+            at: NSTemporaryDirectory()
+        )
 
         XCTAssertEqual(textFileContent, "Hello")
     }
 
     func testSingleCommandAtPathContainingSpace() throws {
-        try shellOut(to: "mkdir -p \"ShellOut Test Folder\"", at: NSTemporaryDirectory())
-        try shellOut(to: "echo \"Hello\" > File", at: NSTemporaryDirectory() + "ShellOut Test Folder")
+        try shellOut(to: "mkdir".checked,
+                     arguments: ["-p".verbatim, "ShellOut Test Folder".quoted],
+                     at: NSTemporaryDirectory())
+        try shellOut(to: "echo".checked, arguments: ["Hello",  ">",  "File"].verbatim,
+                     at: NSTemporaryDirectory() + "ShellOut Test Folder")
 
-        let output = try shellOut(to: "cat \(NSTemporaryDirectory())ShellOut\\ Test\\ Folder/File")
+        let output = try shellOut(
+            to: "cat".checked,
+            arguments: ["\(NSTemporaryDirectory())ShellOut Test Folder/File".quoted])
         XCTAssertEqual(output, "Hello")
     }
 
     func testSingleCommandAtPathContainingTilde() throws {
-        let homeContents = try shellOut(to: "ls", at: "~")
+        let homeContents = try shellOut(to: "ls".checked, at: "~")
         XCTAssertFalse(homeContents.isEmpty)
-    }
-
-    func testSeriesOfCommands() throws {
-        let echo = try shellOut(to: ["echo \"Hello\"", "echo \"world\""])
-        XCTAssertEqual(echo, "Hello\nworld")
-    }
-
-    func testSeriesOfCommandsAtPath() throws {
-        try shellOut(to: [
-            "cd \(NSTemporaryDirectory())",
-            "mkdir -p ShellOutTests",
-            "echo \"Hello again\" > ShellOutTests/MultipleCommands.txt"
-        ])
-
-        let textFileContent = try shellOut(to: [
-            "cd ShellOutTests",
-            "cat MultipleCommands.txt"
-        ], at: NSTemporaryDirectory())
-
-        XCTAssertEqual(textFileContent, "Hello again")
     }
 
     func testThrowingError() {
         do {
-            try shellOut(to: "cd", arguments: ["notADirectory"])
+            try shellOut(to: "cd".checked, arguments: ["notADirectory".verbatim])
             XCTFail("Expected expression to throw")
         } catch let error as ShellOutError {
             XCTAssertTrue(error.message.contains("notADirectory"))
@@ -101,7 +110,9 @@ class ShellOutTests: XCTestCase {
 
     func testCapturingOutputWithHandle() throws {
         let pipe = Pipe()
-        let output = try shellOut(to: "echo", arguments: ["Hello"], outputHandle: pipe.fileHandleForWriting)
+        let output = try shellOut(to: "echo".checked,
+                                  arguments: ["Hello".verbatim],
+                                  outputHandle: pipe.fileHandleForWriting)
         let capturedData = pipe.fileHandleForReading.readDataToEndOfFile()
         XCTAssertEqual(output, "Hello")
         XCTAssertEqual(output + "\n", String(data: capturedData, encoding: .utf8))
@@ -111,7 +122,9 @@ class ShellOutTests: XCTestCase {
         let pipe = Pipe()
 
         do {
-            try shellOut(to: "cd", arguments: ["notADirectory"], errorHandle: pipe.fileHandleForWriting)
+            try shellOut(to: "cd".checked,
+                         arguments: ["notADirectory".verbatim],
+                         errorHandle: pipe.fileHandleForWriting)
             XCTFail("Expected expression to throw")
         } catch let error as ShellOutError {
             XCTAssertTrue(error.message.contains("notADirectory"))
@@ -125,11 +138,23 @@ class ShellOutTests: XCTestCase {
         }
     }
 
+    func test_createFile() throws {
+        let tempFolderPath = NSTemporaryDirectory()
+        try shellOut(to: .createFile(named: "Test", contents: "Hello world"),
+                     at: tempFolderPath)
+        XCTAssertEqual(try shellOut(to: .readFile(at: tempFolderPath + "Test")),
+                       "Hello world")
+    }
+
     func testGitCommands() throws {
         // Setup & clear state
         let tempFolderPath = NSTemporaryDirectory()
-        try shellOut(to: "rm -rf GitTestOrigin", at: tempFolderPath)
-        try shellOut(to: "rm -rf GitTestClone", at: tempFolderPath)
+        try shellOut(to: "rm".checked,
+                     arguments: ["-rf", "GitTestOrigin"].verbatim,
+                     at: tempFolderPath)
+        try shellOut(to: "rm".checked,
+                     arguments: ["-rf", "GitTestClone"].verbatim,
+                     at: tempFolderPath)
 
         // Create a origin repository and make a commit with a file
         let originPath = tempFolderPath + "/GitTestOrigin"
@@ -158,7 +183,9 @@ class ShellOutTests: XCTestCase {
     func testSwiftPackageManagerCommands() throws {
         // Setup & clear state
         let tempFolderPath = NSTemporaryDirectory()
-        try shellOut(to: "rm -rf SwiftPackageManagerTest", at: tempFolderPath)
+        try shellOut(to: "rm".checked,
+                     arguments: ["-rf", "SwiftPackageManagerTest"].verbatim,
+                     at: tempFolderPath)
         try shellOut(to: .createFolder(named: "SwiftPackageManagerTest"), at: tempFolderPath)
 
         // Create a Swift package and verify that it has a Package.swift file
@@ -168,10 +195,34 @@ class ShellOutTests: XCTestCase {
 
         // Build the package and verify that there's a .build folder
         try shellOut(to: .buildSwiftPackage(), at: packagePath)
-        XCTAssertTrue(try shellOut(to: "ls -a", at: packagePath).contains(".build"))
+        XCTAssertTrue(
+            try shellOut(to: "ls".checked, arguments: ["-a".verbatim], at: packagePath) .contains(".build")
+        )
 
         // Generate an Xcode project
         try shellOut(to: .generateSwiftPackageXcodeProject(), at: packagePath)
-        XCTAssertTrue(try shellOut(to: "ls -a", at: packagePath).contains("SwiftPackageManagerTest.xcodeproj"))
+        XCTAssertTrue(
+            try shellOut(to: "ls".checked, arguments: ["-a".verbatim], at: packagePath)
+                .contains("SwiftPackageManagerTest.xcodeproj")
+        )
+    }
+
+    func testArgumentQuoting() throws {
+        XCTAssertEqual(try shellOut(to: "echo".checked,
+                                    arguments: ["foo ; echo bar".quoted]),
+                       "foo ; echo bar")
+        XCTAssertEqual(try shellOut(to: "echo".checked,
+                                    arguments: ["foo ; echo bar".verbatim]),
+                       "foo\nbar")
+    }
+
+    func test_Argument_ExpressibleByStringLiteral() throws {
+        XCTAssertEqual(("foo" as Argument).string, "foo")
+        XCTAssertEqual(("foo bar" as Argument).string, "'foo bar'")
+    }
+
+    func test_Argument_url() throws {
+        XCTAssertEqual(Argument.url(.init(string: "https://example.com")!).string,
+                       "https://example.com")
     }
 }

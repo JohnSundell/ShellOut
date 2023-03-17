@@ -9,17 +9,17 @@ clean:
 macos-5.5: clean
 	@echo
 	@echo === Building $@ ===
-	env DEVELOPER_DIR=/Applications/Xcode_13.2.1.app xcrun swift build
+	env DEVELOPER_DIR=/Applications/Xcode-13.2.1.app xcrun swift build
 
 macos-5.6: clean
 	@echo
 	@echo === Building $@ ===
-	env DEVELOPER_DIR=/Applications/Xcode_13.4.1.app xcrun swift build
+	env DEVELOPER_DIR=/Applications/Xcode-13.4.1.app xcrun swift build
 
 macos-5.7: clean
 	@echo
 	@echo === Building $@ ===
-	env DEVELOPER_DIR=/Applications/Xcode_14.2.0.app xcrun swift build
+	env DEVELOPER_DIR=/Applications/Xcode-14.2.0.app xcrun swift build
 
 linux-5.5: clean
 	@echo
@@ -36,16 +36,16 @@ linux-5.7: clean
 	@echo === Building $@ ===
 	docker run --rm -v "$(PWD)":/host -w /host "swift:5.7-focal" swift build
 
-linux:
+linux: clean \
 	linux-5.5 \
 	linux-5.6 \
 	linux-5.7
 
-macos:
+macos: clean \
 	macos-5.5 \
 	macos-5.6 \
 	macos-5.7
 
-all:
+all: clean \
 	macos \
 	linux

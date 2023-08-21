@@ -71,7 +71,7 @@ class ShellOutTests: XCTestCase {
     }
 
     func testSingleCommandAtPathContainingTilde() throws {
-        let homeContents = try shellOut(to: "ls".checked, at: "~")
+        let homeContents = try shellOut(to: "ls".checked, arguments: ["-a"], at: "~")
         XCTAssertFalse(homeContents.isEmpty)
     }
 

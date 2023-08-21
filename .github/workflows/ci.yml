@@ -12,7 +12,7 @@ jobs:
     runs-on: macos-latest
     strategy:
       matrix:
-        xcode: ['13.4.1', '14.1']
+        xcode: ['14.3.1', '14.0']
     steps:
       - uses: actions/checkout@v3
       - name: Select Xcode ${{ matrix.xcode }}
@@ -27,7 +27,7 @@ jobs:
   Linux:
       runs-on: ubuntu-latest
       container:
-      image: swiftlang/swift@sha256:f212429011a4c3592ffaa660fd78b5bc149e9df7920da02dfc0e7a761582fa10  # swiftlang/swift:nightly-5.9-focal 2023-08-16
+        image: swiftlang/swift@sha256:f212429011a4c3592ffaa660fd78b5bc149e9df7920da02dfc0e7a761582fa10  # swiftlang/swift:nightly-5.9-focal 2023-08-16
       steps:
         - uses: actions/checkout@v3
         - name: Get swift version

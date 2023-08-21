@@ -1,0 +1,19 @@
+{
+    "name": "swift 5.8",
+    "image": "swift:5.8",
+    "customizations": {
+      // Configure properties specific to VS Code.
+      "vscode": {
+        "extensions": [
+            "sswg.swift-lang"
+        ],
+        "settings": {
+          "lldb.library": "/usr/lib/liblldb.so",
+          "terminal.integrated.env.linux": {
+            "LOCALSTACK_ENDPOINT": "http://localstack:4566"
+          }
+        }
+      }
+    },
+    "forwardPorts": [8080]
+}

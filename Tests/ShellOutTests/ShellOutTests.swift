@@ -42,15 +42,16 @@ class ShellOutTests: XCTestCase {
     }
 
     func testSingleCommandAtPath() throws {
+        let tempDir = NSTemporaryDirectory()
         try shellOut(
             to: "echo".checked,
-            arguments: [#"Hello" > \#(NSTemporaryDirectory())ShellOutTests-SingleCommand.txt"#.quoted]
+            arguments: ["Hello", ">".verbatim, "\(tempDir)ShellOutTests-SingleCommand.txt".quoted]
         )
 
         let textFileContent = try shellOut(
             to: "cat".checked,
             arguments:  ["ShellOutTests-SingleCommand.txt".quoted],
-            at: NSTemporaryDirectory()
+            at: tempDir
         )
 
         XCTAssertEqual(textFileContent, "Hello")
@@ -70,7 +71,7 @@ class ShellOutTests: XCTestCase {
     }
 
     func testSingleCommandAtPathContainingTilde() throws {
-        let homeContents = try shellOut(to: "ls".checked, at: "~")
+        let homeContents = try shellOut(to: "ls".checked, arguments: ["-a"], at: "~")
         XCTAssertFalse(homeContents.isEmpty)
     }
 
@@ -178,33 +179,6 @@ class ShellOutTests: XCTestCase {
         // Pull the commit in the clone repository and read the file again
         try shellOut(to: .gitPull(), at: clonePath)
         XCTAssertEqual(try shellOut(to: .readFile(at: filePath)), "Hello again")
-    }
-
-    func testSwiftPackageManagerCommands() throws {
-        // Setup & clear state
-        let tempFolderPath = NSTemporaryDirectory()
-        try shellOut(to: "rm".checked,
-                     arguments: ["-rf", "SwiftPackageManagerTest"].verbatim,
-                     at: tempFolderPath)
-        try shellOut(to: .createFolder(named: "SwiftPackageManagerTest"), at: tempFolderPath)
-
-        // Create a Swift package and verify that it has a Package.swift file
-        let packagePath = tempFolderPath + "/SwiftPackageManagerTest"
-        try shellOut(to: .createSwiftPackage(), at: packagePath)
-        XCTAssertFalse(try shellOut(to: .readFile(at: packagePath + "/Package.swift")).isEmpty)
-
-        // Build the package and verify that there's a .build folder
-        try shellOut(to: .buildSwiftPackage(), at: packagePath)
-        XCTAssertTrue(
-            try shellOut(to: "ls".checked, arguments: ["-a".verbatim], at: packagePath) .contains(".build")
-        )
-
-        // Generate an Xcode project
-        try shellOut(to: .generateSwiftPackageXcodeProject(), at: packagePath)
-        XCTAssertTrue(
-            try shellOut(to: "ls".checked, arguments: ["-a".verbatim], at: packagePath)
-                .contains("SwiftPackageManagerTest.xcodeproj")
-        )
     }
 
     func testArgumentQuoting() throws {

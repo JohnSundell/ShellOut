@@ -316,12 +316,6 @@ public extension ShellOutCommand {
         .init(command: "swift".unchecked, arguments: ["package", "update"].verbatim)
     }
 
-    /// Generate an Xcode project for a Swift package
-    static func generateSwiftPackageXcodeProject() -> ShellOutCommand {
-        .init(command: "swift".unchecked,
-              arguments: ["package", "generate-xcodeproj"].verbatim)
-    }
-
     /// Build a Swift package using a given configuration (see SwiftBuildConfiguration for options)
     static func buildSwiftPackage(withConfiguration configuration: SwiftBuildConfiguration = .debug) -> ShellOutCommand {
         .init(command: "swift".unchecked,
@@ -424,7 +418,6 @@ private extension Process {
         let errorPipe = Pipe()
         standardError = errorPipe
 
-        #if !os(Linux)
         outputPipe.fileHandleForReading.readabilityHandler = { handler in
             let data = handler.availableData
             outputQueue.async {
@@ -440,20 +433,12 @@ private extension Process {
                 errorHandle?.write(data)
             }
         }
-        #endif
 
 #if os(Linux)
         try run()
 #else
         launch()
 #endif
-
-        #if os(Linux)
-        outputQueue.sync {
-            outputData = outputPipe.fileHandleForReading.readDataToEndOfFile()
-            errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
-        }
-        #endif
 
         waitUntilExit()
 
@@ -465,10 +450,8 @@ private extension Process {
             handle.closeFile()
         }
 
-        #if !os(Linux)
         outputPipe.fileHandleForReading.readabilityHandler = nil
         errorPipe.fileHandleForReading.readabilityHandler = nil
-        #endif
 
         // Block until all writes have occurred to outputData and errorData,
         // and then read the data back out.

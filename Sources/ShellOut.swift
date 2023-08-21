@@ -316,12 +316,6 @@ public extension ShellOutCommand {
         .init(command: "swift".unchecked, arguments: ["package", "update"].verbatim)
     }
 
-    /// Generate an Xcode project for a Swift package
-    static func generateSwiftPackageXcodeProject() -> ShellOutCommand {
-        .init(command: "swift".unchecked,
-              arguments: ["package", "generate-xcodeproj"].verbatim)
-    }
-
     /// Build a Swift package using a given configuration (see SwiftBuildConfiguration for options)
     static func buildSwiftPackage(withConfiguration configuration: SwiftBuildConfiguration = .debug) -> ShellOutCommand {
         .init(command: "swift".unchecked,

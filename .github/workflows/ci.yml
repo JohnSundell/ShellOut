@@ -9,30 +9,34 @@ on:
 
 jobs:
   macOS:
-    runs-on: macos-latest
+    # https://github.com/actions/runner-images
+    runs-on: macos-13
     strategy:
       matrix:
-        xcode: ['14.3.1', '14.0']
+        xcode: ['15.0', '14.3.1']
     steps:
       - uses: actions/checkout@v3
-      - name: Select Xcode ${{ matrix.xcode }}
-        run: sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode }}.app
+      - run: git config --global user.email "me@example.com"
+      - run: git config --global user.name "Name"
+      - name: Get swift version
+        run: env DEVELOPER_DIR="/Applications/Xcode_${{ matrix.xcode }}.app" swift --version
+      - name: Test
+        run: env DEVELOPER_DIR="/Applications/Xcode_${{ matrix.xcode }}.app" swift test
+      - name: Build release
+        run: env DEVELOPER_DIR="/Applications/Xcode_${{ matrix.xcode }}.app" swift build -c release
+
+  Linux:
+    # https://github.com/actions/runner-images
+    runs-on: ubuntu-latest
+    container:
+      image: swiftlang/swift@sha256:f212429011a4c3592ffaa660fd78b5bc149e9df7920da02dfc0e7a761582fa10  # swiftlang/swift:nightly-5.9-focal 2023-08-16
+    steps:
+      - uses: actions/checkout@v3
+      - run: git config --global user.email "me@example.com"
+      - run: git config --global user.name "Name"
       - name: Get swift version
         run: swift --version
       - name: Test
         run: swift test
       - name: Build release
         run: swift build -c release
-
-  Linux:
-      runs-on: ubuntu-latest
-      container:
-        image: swiftlang/swift@sha256:f212429011a4c3592ffaa660fd78b5bc149e9df7920da02dfc0e7a761582fa10  # swiftlang/swift:nightly-5.9-focal 2023-08-16
-      steps:
-        - uses: actions/checkout@v3
-        - name: Get swift version
-          run: swift --version
-        - name: Test
-          run: swift test
-        - name: Build release
-          run: swift build -c release

@@ -392,11 +392,7 @@ extension ShellOutCommand {
 
 private extension Process {
     @discardableResult func launchBash(with command: String, outputHandle: FileHandle? = nil, errorHandle: FileHandle? = nil, environment: [String : String]? = nil) throws -> String {
-#if os(Linux)
         executableURL = URL(fileURLWithPath: "/bin/bash")
-#else
-        launchPath = "/bin/bash"
-#endif
         arguments = ["-c", command]
 
         if let environment = environment {
@@ -434,11 +430,7 @@ private extension Process {
             }
         }
 
-#if os(Linux)
         try run()
-#else
-        launch()
-#endif
 
         waitUntilExit()
 

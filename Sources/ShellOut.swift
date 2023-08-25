@@ -434,13 +434,8 @@ private extension Process {
 
         waitUntilExit()
 
-        if let handle = outputHandle, !handle.isStandard {
-            handle.closeFile()
-        }
-
-        if let handle = errorHandle, !handle.isStandard {
-            handle.closeFile()
-        }
+        outputHandle?.closeFile()
+        errorHandle?.closeFile()
 
         outputPipe.fileHandleForReading.readabilityHandler = nil
         errorPipe.fileHandleForReading.readabilityHandler = nil
@@ -461,23 +456,12 @@ private extension Process {
     }
 }
 
-private extension FileHandle {
-    var isStandard: Bool {
-        return self === FileHandle.standardOutput ||
-            self === FileHandle.standardError ||
-            self === FileHandle.standardInput
-    }
-}
-
 private extension Data {
     func shellOutput() -> String {
-        guard let output = String(data: self, encoding: .utf8) else {
-            return ""
-        }
+        let output = String(decoding: self, as: UTF8.self)
 
         guard !output.hasSuffix("\n") else {
-            let endIndex = output.index(before: output.endIndex)
-            return String(output[..<endIndex])
+            return String(output.dropLast())
         }
 
         return output

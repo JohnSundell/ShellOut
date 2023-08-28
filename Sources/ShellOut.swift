@@ -454,6 +454,103 @@ private extension Process {
             return outputData.shellOutput()
         }
     }
+
+    @discardableResult func launchBashOldVersion(with command: String, outputHandle: FileHandle? = nil, errorHandle: FileHandle? = nil, environment: [String : String]? = nil) throws -> String {
+#if os(Linux)
+        executableURL = URL(fileURLWithPath: "/bin/bash")
+#else
+        launchPath = "/bin/bash"
+#endif
+        arguments = ["-c", command]
+
+        if let environment = environment {
+            self.environment = environment
+        }
+
+        // Because FileHandle's readabilityHandler might be called from a
+        // different queue from the calling queue, avoid a data race by
+        // protecting reads and writes to outputData and errorData on
+        // a single dispatch queue.
+        let outputQueue = DispatchQueue(label: "bash-output-queue")
+
+        var outputData = Data()
+        var errorData = Data()
+
+        let outputPipe = Pipe()
+        standardOutput = outputPipe
+
+        let errorPipe = Pipe()
+        standardError = errorPipe
+
+        #if !os(Linux)
+        outputPipe.fileHandleForReading.readabilityHandler = { handler in
+            let data = handler.availableData
+            outputQueue.async {
+                outputData.append(data)
+                outputHandle?.write(data)
+            }
+        }
+
+        errorPipe.fileHandleForReading.readabilityHandler = { handler in
+            let data = handler.availableData
+            outputQueue.async {
+                errorData.append(data)
+                errorHandle?.write(data)
+            }
+        }
+        #endif
+
+#if os(Linux)
+        try run()
+#else
+        launch()
+#endif
+
+        #if os(Linux)
+        outputQueue.sync {
+            outputData = outputPipe.fileHandleForReading.readDataToEndOfFile()
+            errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
+        }
+        #endif
+
+        waitUntilExit()
+
+        if let handle = outputHandle, !handle.isStandard {
+            handle.closeFile()
+        }
+
+        if let handle = errorHandle, !handle.isStandard {
+            handle.closeFile()
+        }
+
+        #if !os(Linux)
+        outputPipe.fileHandleForReading.readabilityHandler = nil
+        errorPipe.fileHandleForReading.readabilityHandler = nil
+        #endif
+
+        // Block until all writes have occurred to outputData and errorData,
+        // and then read the data back out.
+        return try outputQueue.sync {
+            if terminationStatus != 0 {
+                throw ShellOutError(
+                    terminationStatus: terminationStatus,
+                    errorData: errorData,
+                    outputData: outputData
+                )
+            }
+
+            return outputData.shellOutput()
+        }
+    }
+
+}
+
+private extension FileHandle {
+    var isStandard: Bool {
+        return self === FileHandle.standardOutput ||
+            self === FileHandle.standardError ||
+            self === FileHandle.standardInput
+    }
 }
 
 private extension Data {

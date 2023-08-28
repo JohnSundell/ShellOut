@@ -32,12 +32,12 @@ class ShellOutTests: XCTestCase {
     }
 
     func testWithoutArguments() throws {
-        let uptime = try shellOut(to: "uptime".checked)
+        let uptime = try shellOut(to: "uptime".checked).stdout
         XCTAssertTrue(uptime.contains("load average"))
     }
 
     func testWithArguments() throws {
-        let echo = try shellOut(to: "echo".checked, arguments: ["Hello world".quoted])
+        let echo = try shellOut(to: "echo".checked, arguments: ["Hello world".quoted]).stdout
         XCTAssertEqual(echo, "Hello world")
     }
 
@@ -52,7 +52,7 @@ class ShellOutTests: XCTestCase {
             to: "cat".checked,
             arguments:  ["ShellOutTests-SingleCommand.txt".quoted],
             at: tempDir
-        )
+        ).stdout
 
         XCTAssertEqual(textFileContent, "Hello")
     }
@@ -66,12 +66,12 @@ class ShellOutTests: XCTestCase {
 
         let output = try shellOut(
             to: "cat".checked,
-            arguments: ["\(NSTemporaryDirectory())ShellOut Test Folder/File".quoted])
+            arguments: ["\(NSTemporaryDirectory())ShellOut Test Folder/File".quoted]).stdout
         XCTAssertEqual(output, "Hello")
     }
 
     func testSingleCommandAtPathContainingTilde() throws {
-        let homeContents = try shellOut(to: "ls".checked, arguments: ["-a"], at: "~")
+        let homeContents = try shellOut(to: "ls".checked, arguments: ["-a"], at: "~").stdout
         XCTAssertFalse(homeContents.isEmpty)
     }
 
@@ -113,7 +113,7 @@ class ShellOutTests: XCTestCase {
         let pipe = Pipe()
         let output = try shellOut(to: "echo".checked,
                                   arguments: ["Hello".verbatim],
-                                  outputHandle: pipe.fileHandleForWriting)
+                                  outputHandle: pipe.fileHandleForWriting).stdout
         let capturedData = pipe.fileHandleForReading.readDataToEndOfFile()
         XCTAssertEqual(output, "Hello")
         XCTAssertEqual(output + "\n", String(data: capturedData, encoding: .utf8))
@@ -143,7 +143,7 @@ class ShellOutTests: XCTestCase {
         let tempFolderPath = NSTemporaryDirectory()
         try shellOut(to: .createFile(named: "Test", contents: "Hello world"),
                      at: tempFolderPath)
-        XCTAssertEqual(try shellOut(to: .readFile(at: tempFolderPath + "Test")),
+        XCTAssertEqual(try shellOut(to: .readFile(at: tempFolderPath + "Test")).stdout,
                        "Hello world")
     }
 
@@ -170,7 +170,7 @@ class ShellOutTests: XCTestCase {
         try shellOut(to: .gitClone(url: cloneURL, to: "GitTestClone"), at: tempFolderPath)
 
         let filePath = clonePath + "/Test"
-        XCTAssertEqual(try shellOut(to: .readFile(at: filePath)), "Hello world")
+        XCTAssertEqual(try shellOut(to: .readFile(at: filePath)).stdout, "Hello world")
 
         // Make a new commit in the origin repository
         try shellOut(to: .createFile(named: "Test", contents: "Hello again"), at: originPath)
@@ -178,15 +178,15 @@ class ShellOutTests: XCTestCase {
 
         // Pull the commit in the clone repository and read the file again
         try shellOut(to: .gitPull(), at: clonePath)
-        XCTAssertEqual(try shellOut(to: .readFile(at: filePath)), "Hello again")
+        XCTAssertEqual(try shellOut(to: .readFile(at: filePath)).stdout, "Hello again")
     }
 
     func testArgumentQuoting() throws {
         XCTAssertEqual(try shellOut(to: "echo".checked,
-                                    arguments: ["foo ; echo bar".quoted]),
+                                    arguments: ["foo ; echo bar".quoted]).stdout,
                        "foo ; echo bar")
         XCTAssertEqual(try shellOut(to: "echo".checked,
-                                    arguments: ["foo ; echo bar".verbatim]),
+                                    arguments: ["foo ; echo bar".verbatim]).stdout,
                        "foo\nbar")
     }
 

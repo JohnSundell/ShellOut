@@ -36,7 +36,7 @@ import Dispatch
     outputHandle: FileHandle? = nil,
     errorHandle: FileHandle? = nil,
     environment: [String : String]? = nil
-) throws -> String {
+) throws -> (stdout: String, stderr: String) {
     let command = "cd \(path.escapingSpaces) && \(command) \(arguments.map(\.string).joined(separator: " "))"
 
     return try process.launchBash(
@@ -72,7 +72,7 @@ import Dispatch
     outputHandle: FileHandle? = nil,
     errorHandle: FileHandle? = nil,
     environment: [String : String]? = nil
-) throws -> String {
+) throws -> (stdout: String, stderr: String) {
     try shellOut(
         to: command.command,
         arguments: command.arguments,
@@ -391,7 +391,7 @@ extension ShellOutCommand {
 // MARK: - Private
 
 private extension Process {
-    @discardableResult func launchBash(with command: String, outputHandle: FileHandle? = nil, errorHandle: FileHandle? = nil, environment: [String : String]? = nil) throws -> String {
+    @discardableResult func launchBash(with command: String, outputHandle: FileHandle? = nil, errorHandle: FileHandle? = nil, environment: [String : String]? = nil) throws -> (stdout: String, stderr: String) {
         executableURL = URL(fileURLWithPath: "/bin/bash")
         arguments = ["-c", command]
 
@@ -451,11 +451,11 @@ private extension Process {
                 )
             }
 
-            return outputData.shellOutput()
+            return (stdout: outputData.shellOutput(), stderr: errorData.shellOutput())
         }
     }
 
-    @discardableResult func launchBashOldVersion(with command: String, outputHandle: FileHandle? = nil, errorHandle: FileHandle? = nil, environment: [String : String]? = nil) throws -> String {
+    @discardableResult func launchBashOldVersion(with command: String, outputHandle: FileHandle? = nil, errorHandle: FileHandle? = nil, environment: [String : String]? = nil) throws -> (stdout: String, stderr: String) {
 #if os(Linux)
         executableURL = URL(fileURLWithPath: "/bin/bash")
 #else
@@ -539,7 +539,7 @@ private extension Process {
                 )
             }
 
-            return outputData.shellOutput()
+            return (stdout: outputData.shellOutput(), stderr: errorData.shellOutput())
         }
     }
 

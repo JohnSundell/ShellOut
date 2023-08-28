@@ -47,6 +47,25 @@ import Dispatch
     )
 }
 
+@discardableResult public func shellOutOldVersion(
+    to command: SafeString,
+    arguments: [Argument] = [],
+    at path: String = ".",
+    process: Process = .init(),
+    outputHandle: FileHandle? = nil,
+    errorHandle: FileHandle? = nil,
+    environment: [String : String]? = nil
+) throws -> (stdout: String, stderr: String) {
+    let command = "cd \(path.escapingSpaces) && \(command) \(arguments.map(\.string).joined(separator: " "))"
+
+    return try process.launchBashOldVersion(
+        with: command,
+        outputHandle: outputHandle,
+        errorHandle: errorHandle,
+        environment: environment
+    )
+}
+
 /**
  *  Run a pre-defined shell command using Bash
  *
@@ -74,6 +93,25 @@ import Dispatch
     environment: [String : String]? = nil
 ) throws -> (stdout: String, stderr: String) {
     try shellOut(
+        to: command.command,
+        arguments: command.arguments,
+        at: path,
+        process: process,
+        outputHandle: outputHandle,
+        errorHandle: errorHandle,
+        environment: environment
+    )
+}
+
+@discardableResult public func shellOutOldVersion(
+    to command: ShellOutCommand,
+    at path: String = ".",
+    process: Process = .init(),
+    outputHandle: FileHandle? = nil,
+    errorHandle: FileHandle? = nil,
+    environment: [String : String]? = nil
+) throws -> (stdout: String, stderr: String) {
+    try shellOutOldVersion(
         to: command.command,
         arguments: command.arguments,
         at: path,

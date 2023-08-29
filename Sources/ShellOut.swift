@@ -478,6 +478,20 @@ private extension Process {
         outputPipe.fileHandleForReading.readabilityHandler = nil
         errorPipe.fileHandleForReading.readabilityHandler = nil
 
+        do {
+            // According to Gwynne there's an old bug where readability handler might report back an emptry string.
+            // Advice is to call readDataToEndOfFile() to collect any remaining data. This should not lead to a hang,
+            // because buffers should have been cleared up sufficiently via readabilityHandler callbacks.
+            outputQueue.sync {
+                if outputData.isEmpty {
+                    outputData = outputPipe.fileHandleForReading.readDataToEndOfFile()
+                }
+                if errorData.isEmpty {
+                    errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
+                }
+            }
+        }
+
         // Block until all writes have occurred to outputData and errorData,
         // and then read the data back out.
         return try outputQueue.sync {

@@ -47,25 +47,6 @@ import Dispatch
     )
 }
 
-@discardableResult public func shellOut2(
-    to command: String,
-    arguments: [String] = [],
-    at path: String? = nil,
-    process: Process = .init(),
-    outputHandle: FileHandle? = nil,
-    errorHandle: FileHandle? = nil,
-    environment: [String : String]? = nil
-) throws -> (stdout: String, stderr: String) {
-    try process.launch(
-        command: command,
-        arguments: arguments,
-        at: path,
-        outputHandle: outputHandle,
-        errorHandle: errorHandle,
-        environment: environment
-    )
-}
-
 @discardableResult public func shellOutOldVersion(
     to command: SafeString,
     arguments: [Argument] = [],
@@ -451,85 +432,6 @@ private extension Process {
     @discardableResult func launchBash(with command: String, outputHandle: FileHandle? = nil, errorHandle: FileHandle? = nil, environment: [String : String]? = nil) throws -> (stdout: String, stderr: String) {
         self.executableURL = URL(fileURLWithPath: "/bin/bash")
         self.arguments = ["-c", command]
-
-        if let environment {
-            self.environment = environment
-        }
-
-        // Because FileHandle's readabilityHandler might be called from a
-        // different queue from the calling queue, avoid a data race by
-        // protecting reads and writes to outputData and errorData on
-        // a single dispatch queue.
-        let outputQueue = DispatchQueue(label: "bash-output-queue")
-
-        var outputData = Data()
-        var errorData = Data()
-
-        let outputPipe = Pipe()
-        self.standardOutput = outputPipe
-
-        let errorPipe = Pipe()
-        self.standardError = errorPipe
-
-        outputPipe.fileHandleForReading.readabilityHandler = { handler in
-            let data = handler.availableData
-            outputQueue.async {
-                outputData.append(data)
-                outputHandle?.write(data)
-            }
-        }
-
-        errorPipe.fileHandleForReading.readabilityHandler = { handler in
-            let data = handler.availableData
-            outputQueue.async {
-                errorData.append(data)
-                errorHandle?.write(data)
-            }
-        }
-
-        try self.run()
-
-        self.waitUntilExit()
-
-        outputPipe.fileHandleForReading.readabilityHandler = nil
-        errorPipe.fileHandleForReading.readabilityHandler = nil
-
-        // Spend as little time as possible inside the sync() block by doing
-        // this part in an async block.
-        outputQueue.async {
-            if let extraOutput = try? outputPipe.fileHandleForReading.readToEnd() {
-                outputData.append(extraOutput)
-                outputHandle?.write(extraOutput)
-            }
-
-            if let extraError = try? errorPipe.fileHandleForReading.readToEnd() {
-                errorData.append(extraError)
-                errorHandle?.write(extraError)
-            }
-        }
-
-        return try outputQueue.sync(flags: .barrier) {
-            try outputPipe.fileHandleForReading.close()
-            try errorPipe.fileHandleForReading.close()
-            try outputHandle?.close()
-            try errorHandle?.close()
-
-            if self.terminationStatus != 0 {
-                throw ShellOutError(
-                    terminationStatus: terminationStatus,
-                    errorData: errorData,
-                    outputData: outputData
-                )
-            }
-
-            return (stdout: outputData.shellOutput(), stderr: errorData.shellOutput())
-        }
-    }
-
-    @discardableResult func launch(command: String, arguments: [String] = [], at path: String? = nil, outputHandle: FileHandle? = nil, errorHandle: FileHandle? = nil, environment: [String : String]? = nil) throws -> (stdout: String, stderr: String) {
-        self.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-        self.currentDirectoryURL = path.map { URL(fileURLWithPath: $0) }
-        self.arguments = [command] + arguments
 
         if let environment {
             self.environment = environment

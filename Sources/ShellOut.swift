@@ -489,26 +489,24 @@ private extension Process {
             }
         }
 
-        // We don't actually have to do anything further *on* the queue, since
-        // there are no longer any async processes going on; just do a barrier sync
-        // with an empty block to guarantee nothing is still running there.
-        outputQueue.sync(flags: .barrier) {}
+        return try outputQueue.sync(flags: .barrier) {
+            try outputPipe.fileHandleForReading.close()
+            try errorPipe.fileHandleForReading.close()
+            try outputHandle?.close()
+            try errorHandle?.close()
 
-        try outputPipe.fileHandleForReading.close()
-        try errorPipe.fileHandleForReading.close()
-        try outputHandle?.close()
-        try errorHandle?.close()
+            if self.terminationStatus != 0 {
+                throw ShellOutError(
+                    terminationStatus: terminationStatus,
+                    errorData: errorData,
+                    outputData: outputData
+                )
+            }
 
-        if self.terminationStatus != 0 {
-            throw ShellOutError(
-                terminationStatus: terminationStatus,
-                errorData: errorData,
-                outputData: outputData
-            )
+            return (stdout: outputData.shellOutput(), stderr: errorData.shellOutput())
         }
-
-        return (stdout: outputData.shellOutput(), stderr: errorData.shellOutput())
     }
+
     @discardableResult func launchBashOldVersion(with command: String, outputHandle: FileHandle? = nil, errorHandle: FileHandle? = nil, environment: [String : String]? = nil) throws -> (stdout: String, stderr: String) {
 #if os(Linux)
         executableURL = URL(fileURLWithPath: "/bin/bash")

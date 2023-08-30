@@ -430,10 +430,10 @@ extension ShellOutCommand {
 
 private extension Process {
     @discardableResult func launchBash(with command: String, outputHandle: FileHandle? = nil, errorHandle: FileHandle? = nil, environment: [String : String]? = nil) throws -> (stdout: String, stderr: String) {
-        executableURL = URL(fileURLWithPath: "/bin/bash")
-        arguments = ["-c", command]
+        self.executableURL = URL(fileURLWithPath: "/bin/bash")
+        self.arguments = ["-c", command]
 
-        if let environment = environment {
+        if let environment {
             self.environment = environment
         }
 
@@ -447,10 +447,10 @@ private extension Process {
         var errorData = Data()
 
         let outputPipe = Pipe()
-        standardOutput = outputPipe
+        self.standardOutput = outputPipe
 
         let errorPipe = Pipe()
-        standardError = errorPipe
+        self.standardError = errorPipe
 
         outputPipe.fileHandleForReading.readabilityHandler = { handler in
             let data = handler.availableData
@@ -468,45 +468,47 @@ private extension Process {
             }
         }
 
-        try run()
+        try self.run()
 
-        waitUntilExit()
-
-        outputHandle?.closeFile()
-        errorHandle?.closeFile()
+        self.waitUntilExit()
 
         outputPipe.fileHandleForReading.readabilityHandler = nil
         errorPipe.fileHandleForReading.readabilityHandler = nil
 
-        do {
-            // According to Gwynne there's an old bug where readability handler might report back an emptry string.
-            // Advice is to call readDataToEndOfFile() to collect any remaining data. This should not lead to a hang,
-            // because buffers should have been cleared up sufficiently via readabilityHandler callbacks.
-            outputQueue.sync {
-                if outputData.isEmpty {
-                    outputData = outputPipe.fileHandleForReading.readDataToEndOfFile()
-                }
-                if errorData.isEmpty {
-                    errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
-                }
+        // Spend as little time as possible inside the sync() block by doing
+        // this part in an async block.
+        outputQueue.async {
+            if let extraOutput = try? outputPipe.fileHandleForReading.readToEnd() {
+                outputData.append(extraOutput)
+                outputHandle?.write(extraOutput)
+            }
+
+            if let extraError = try? errorPipe.fileHandleForReading.readToEnd() {
+                errorData.append(extraError)
+                errorHandle?.write(extraError)
             }
         }
 
-        // Block until all writes have occurred to outputData and errorData,
-        // and then read the data back out.
-        return try outputQueue.sync {
-            if terminationStatus != 0 {
-                throw ShellOutError(
-                    terminationStatus: terminationStatus,
-                    errorData: errorData,
-                    outputData: outputData
-                )
-            }
+        // We don't actually have to do anything further *on* the queue, since
+        // there are no longer any async processes going on; just do a barrier sync
+        // with an empty block to guarantee nothing is still running there.
+        outputQueue.sync(flags: .barrier) {}
 
-            return (stdout: outputData.shellOutput(), stderr: errorData.shellOutput())
+        try outputPipe.fileHandleForReading.close()
+        try errorPipe.fileHandleForReading.close()
+        try outputHandle?.close()
+        try errorHandle?.close()
+
+        if self.terminationStatus != 0 {
+            throw ShellOutError(
+                terminationStatus: terminationStatus,
+                errorData: errorData,
+                outputData: outputData
+            )
         }
+
+        return (stdout: outputData.shellOutput(), stderr: errorData.shellOutput())
     }
-
     @discardableResult func launchBashOldVersion(with command: String, outputHandle: FileHandle? = nil, errorHandle: FileHandle? = nil, environment: [String : String]? = nil) throws -> (stdout: String, stderr: String) {
 #if os(Linux)
         executableURL = URL(fileURLWithPath: "/bin/bash")

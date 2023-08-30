@@ -1,4 +1,4 @@
-// swift-tools-version:4.2
+// swift-tools-version:5.8
 
 /**
  *  ShellOut
@@ -10,6 +10,7 @@ import PackageDescription
 
 let package = Package(
     name: "ShellOut",
+    platforms: [.macOS("10.15.4")],
     products: [
         .library(name: "ShellOut", targets: ["ShellOut"])
     ],

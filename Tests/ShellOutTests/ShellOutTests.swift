@@ -237,6 +237,43 @@ class ShellOutTests: XCTestCase {
                 v0.1.0
                 """)
     }
+
+    func test_git_tags_2() throws {
+        // setup
+        let tempDir = NSTemporaryDirectory().appending("test_stress_\(UUID())")
+        defer {
+            try? Foundation.FileManager.default.removeItem(atPath: tempDir)
+        }
+        let sampleGitRepoName = "ErrNo"
+        let sampleGitRepoZipFile = fixturesDirectory()
+            .appendingPathComponent("\(sampleGitRepoName).zip").path
+        let path = "\(tempDir)/\(sampleGitRepoName)"
+        try! Foundation.FileManager.default.createDirectory(atPath: tempDir, withIntermediateDirectories: false, attributes: nil)
+        try! ShellOut.shellOut(to: .init(command: "unzip", arguments: [sampleGitRepoZipFile.quoted]), at: tempDir)
+
+        // MUT
+        XCTAssertEqual(try shellOut2(to: "git", arguments: ["tag"], at: path).stdout, """
+                0.2.0
+                0.2.1
+                0.2.2
+                0.2.3
+                0.2.4
+                0.2.5
+                0.3.0
+                0.4.0
+                0.4.1
+                0.4.2
+                0.5.0
+                0.5.1
+                0.5.2
+                v0.0.1
+                v0.0.2
+                v0.0.3
+                v0.0.4
+                v0.0.5
+                v0.1.0
+                """)
+    }
 }
 
 extension ShellOutTests {

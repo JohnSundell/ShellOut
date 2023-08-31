@@ -459,7 +459,7 @@ private extension Process {
 
         outputPipe.fileHandleForReading.readabilityHandler = { handler in
             let data = handler.availableData
-            logger?.info("ShellOut.launchBash: Read \(data.count) bytes from stdout (readabilityHandler)")
+            logger?.info("ShellOut.launchBash: Read \(data.count) bytes from stdout (readabilityHandler, command: \(command))")
             outputQueue.async {
                 outputData.append(data)
                 outputHandle?.write(data)
@@ -468,7 +468,7 @@ private extension Process {
 
         errorPipe.fileHandleForReading.readabilityHandler = { handler in
             let data = handler.availableData
-            logger?.info("ShellOut.launchBash: Read \(data.count) bytes from stderr (readabilityHandler)")
+            logger?.info("ShellOut.launchBash: Read \(data.count) bytes from stderr (readabilityHandler, command: \(command))")
             outputQueue.async {
                 errorData.append(data)
                 errorHandle?.write(data)
@@ -486,13 +486,13 @@ private extension Process {
         // this part in an async block.
         outputQueue.async {
             if let extraOutput = try? outputPipe.fileHandleForReading.readToEnd() {
-                logger?.info("ShellOut.launchBash: Read \(extraOutput.count) bytes from stdout (readToEnd)")
+                logger?.info("ShellOut.launchBash: Read \(extraOutput.count) bytes from stdout (readToEnd), command: \(command)")
                 outputData.append(extraOutput)
                 outputHandle?.write(extraOutput)
             }
 
             if let extraError = try? errorPipe.fileHandleForReading.readToEnd() {
-                logger?.info("ShellOut.launchBash: Read \(extraError.count) bytes from stderr (readToEnd)")
+                logger?.info("ShellOut.launchBash: Read \(extraError.count) bytes from stderr (readToEnd), command: \(command)")
                 errorData.append(extraError)
                 errorHandle?.write(extraError)
             }

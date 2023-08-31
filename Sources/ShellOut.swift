@@ -6,6 +6,7 @@
 
 import Foundation
 import Dispatch
+import Logging
 
 // MARK: - API
 
@@ -33,6 +34,7 @@ import Dispatch
     arguments: [Argument] = [],
     at path: String = ".",
     process: Process = .init(),
+    logger: Logger? = nil,
     outputHandle: FileHandle? = nil,
     errorHandle: FileHandle? = nil,
     environment: [String : String]? = nil
@@ -41,6 +43,7 @@ import Dispatch
 
     return try process.launchBash(
         with: command,
+        logger: logger,
         outputHandle: outputHandle,
         errorHandle: errorHandle,
         environment: environment
@@ -88,6 +91,7 @@ import Dispatch
     to command: ShellOutCommand,
     at path: String = ".",
     process: Process = .init(),
+    logger: Logger? = nil,
     outputHandle: FileHandle? = nil,
     errorHandle: FileHandle? = nil,
     environment: [String : String]? = nil
@@ -97,6 +101,7 @@ import Dispatch
         arguments: command.arguments,
         at: path,
         process: process,
+        logger: logger,
         outputHandle: outputHandle,
         errorHandle: errorHandle,
         environment: environment
@@ -429,7 +434,7 @@ extension ShellOutCommand {
 // MARK: - Private
 
 private extension Process {
-    @discardableResult func launchBash(with command: String, outputHandle: FileHandle? = nil, errorHandle: FileHandle? = nil, environment: [String : String]? = nil) throws -> (stdout: String, stderr: String) {
+    @discardableResult func launchBash(with command: String, logger: Logger? = nil, outputHandle: FileHandle? = nil, errorHandle: FileHandle? = nil, environment: [String : String]? = nil) throws -> (stdout: String, stderr: String) {
         self.executableURL = URL(fileURLWithPath: "/bin/bash")
         self.arguments = ["-c", command]
 
@@ -454,6 +459,7 @@ private extension Process {
 
         outputPipe.fileHandleForReading.readabilityHandler = { handler in
             let data = handler.availableData
+            logger?.info("ShellOut.launchBash: Read \(data.count) bytes from stdout (readabilityHandler)")
             outputQueue.async {
                 outputData.append(data)
                 outputHandle?.write(data)
@@ -462,6 +468,7 @@ private extension Process {
 
         errorPipe.fileHandleForReading.readabilityHandler = { handler in
             let data = handler.availableData
+            logger?.info("ShellOut.launchBash: Read \(data.count) bytes from stderr (readabilityHandler)")
             outputQueue.async {
                 errorData.append(data)
                 errorHandle?.write(data)
@@ -479,11 +486,13 @@ private extension Process {
         // this part in an async block.
         outputQueue.async {
             if let extraOutput = try? outputPipe.fileHandleForReading.readToEnd() {
+                logger?.info("ShellOut.launchBash: Read \(extraOutput.count) bytes from stdout (readToEnd)")
                 outputData.append(extraOutput)
                 outputHandle?.write(extraOutput)
             }
 
             if let extraError = try? errorPipe.fileHandleForReading.readToEnd() {
+                logger?.info("ShellOut.launchBash: Read \(extraError.count) bytes from stderr (readToEnd)")
                 errorData.append(extraError)
                 errorHandle?.write(extraError)
             }

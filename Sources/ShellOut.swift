@@ -458,21 +458,32 @@ private extension Process {
         self.standardError = errorPipe
 
         outputPipe.fileHandleForReading.readabilityHandler = { handler in
-            let data = handler.availableData
-            logger?.info("ShellOut.launchBash: Read \(data.count) bytes from stdout (readabilityHandler, command: \(command))")
-            outputQueue.async {
-                outputData.append(data)
-                outputHandle?.write(data)
+            var data = handler.availableData
+            while !data.isEmpty {
+               let readData = data
+               logger?.info("ShellOut.launchBash: Read \(readData.count) bytes from stdout (readabilityHandler, command: \(command))")
+                outputQueue.async {
+                    logger?.info("ShellOut.launchBash: Reporting \(readData.count) bytes from stdout (readabilityHandler, command: \(command))")
+                    outputData.append(readData)
+                    outputHandle?.write(readData)
+                }
+                data = handler.availableData
             }
         }
 
         errorPipe.fileHandleForReading.readabilityHandler = { handler in
-            let data = handler.availableData
-            logger?.info("ShellOut.launchBash: Read \(data.count) bytes from stderr (readabilityHandler, command: \(command))")
-            outputQueue.async {
-                errorData.append(data)
-                errorHandle?.write(data)
+            var data = handler.availableData
+            while !data.isEmpty {
+               let readData = data
+               logger?.info("ShellOut.launchBash: Read \(readData.count) bytes from stderr (readabilityHandler, command: \(command))")
+                outputQueue.async {
+                    logger?.info("ShellOut.launchBash: Reporting \(readData.count) bytes from stderr (readabilityHandler, command: \(command))")
+                    errorData.append(readData)
+                    errorHandle?.write(readData)
+                }
+                data = handler.availableData
             }
+
         }
 
         try self.run()

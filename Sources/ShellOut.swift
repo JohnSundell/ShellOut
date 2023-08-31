@@ -479,12 +479,14 @@ private extension Process {
 
         self.waitUntilExit()
 
+        outputQueue.sync(flags: .barrier) {}
+
         outputPipe.fileHandleForReading.readabilityHandler = nil
         errorPipe.fileHandleForReading.readabilityHandler = nil
 
         // Spend as little time as possible inside the sync() block by doing
         // this part in an async block.
-        outputQueue.async {
+        return try outputQueue.sync(flags: .barrier) {
             if let extraOutput = try? outputPipe.fileHandleForReading.readToEnd() {
                 logger?.info("ShellOut.launchBash: Read \(extraOutput.count) bytes from stdout (readToEnd), command: \(command)")
                 outputData.append(extraOutput)
@@ -496,9 +498,7 @@ private extension Process {
                 errorData.append(extraError)
                 errorHandle?.write(extraError)
             }
-        }
 
-        return try outputQueue.sync(flags: .barrier) {
             try outputPipe.fileHandleForReading.close()
             try errorPipe.fileHandleForReading.close()
             try outputHandle?.close()

@@ -1,16 +1,23 @@
 {
-  "object": {
-    "pins": [
-      {
-        "package": "ShellQuote",
-        "repositoryURL": "https://github.com/SwiftPackageIndex/ShellQuote",
-        "state": {
-          "branch": null,
-          "revision": "5f555550c30ef43d64b36b40c2c291a95d62580c",
-          "version": "1.0.2"
-        }
+  "pins" : [
+    {
+      "identity" : "shellquote",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/SwiftPackageIndex/ShellQuote",
+      "state" : {
+        "revision" : "5f555550c30ef43d64b36b40c2c291a95d62580c",
+        "version" : "1.0.2"
       }
-    ]
-  },
-  "version": 1
+    },
+    {
+      "identity" : "swift-log",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-log.git",
+      "state" : {
+        "revision" : "532d8b529501fb73a2455b179e0bbb6d49b652ed",
+        "version" : "1.5.3"
+      }
+    }
+  ],
+  "version" : 2
 }

@@ -490,6 +490,7 @@ private extension Process {
 
         self.waitUntilExit()
 
+        logger?.info("ShellOut.launchBash (1): \(outputData as NSData) (readabilityHandler, command: \(command))")
         outputQueue.sync(flags: .barrier) {}
 
         outputPipe.fileHandleForReading.readabilityHandler = nil
@@ -497,32 +498,38 @@ private extension Process {
 
         // Spend as little time as possible inside the sync() block by doing
         // this part in an async block.
+        logger?.info("ShellOut.launchBash (2): \(outputData as NSData) (readabilityHandler, command: \(command))")
         return try outputQueue.sync(flags: .barrier) {
+            logger?.info("ShellOut.launchBash (3): \(outputData as NSData) (readabilityHandler, command: \(command))")
             if let extraOutput = try? outputPipe.fileHandleForReading.readToEnd() {
                 logger?.info("ShellOut.launchBash: Read \(extraOutput.count) bytes from stdout (readToEnd), command: \(command)")
                 outputData.append(extraOutput)
                 outputHandle?.write(extraOutput)
             }
+            logger?.info("ShellOut.launchBash (4): \(outputData as NSData) (readabilityHandler, command: \(command))")
 
             if let extraError = try? errorPipe.fileHandleForReading.readToEnd() {
                 logger?.info("ShellOut.launchBash: Read \(extraError.count) bytes from stderr (readToEnd), command: \(command)")
                 errorData.append(extraError)
                 errorHandle?.write(extraError)
             }
+            logger?.info("ShellOut.launchBash (5): \(outputData as NSData) (readabilityHandler, command: \(command))")
 
             try outputPipe.fileHandleForReading.close()
             try errorPipe.fileHandleForReading.close()
             try outputHandle?.close()
             try errorHandle?.close()
+            logger?.info("ShellOut.launchBash (6): \(outputData as NSData) (readabilityHandler, command: \(command))")
 
             if self.terminationStatus != 0 {
+                logger?.info("ShellOut.launchBash (7): \(outputData as NSData) (readabilityHandler, command: \(command))")
                 throw ShellOutError(
                     terminationStatus: terminationStatus,
                     errorData: errorData,
                     outputData: outputData
                 )
             }
-
+            logger?.info("ShellOut.launchBash (8): \(outputData as NSData) (readabilityHandler, command: \(command))")
             return (stdout: outputData.shellOutput(), stderr: errorData.shellOutput())
         }
     }

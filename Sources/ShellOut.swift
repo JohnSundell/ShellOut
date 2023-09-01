@@ -7,6 +7,8 @@
 import Foundation
 import Dispatch
 import Logging
+import TSCBasic
+import Algorithms
 
 // MARK: - API
 
@@ -33,22 +35,23 @@ import Logging
     to command: SafeString,
     arguments: [Argument] = [],
     at path: String = ".",
-    process: Process = .init(),
     logger: Logger? = nil,
     outputHandle: FileHandle? = nil,
     errorHandle: FileHandle? = nil,
-    environment: [String : String]? = nil,
-    eofTimeout: DispatchTimeInterval = .milliseconds(10)
-) throws -> (stdout: String, stderr: String) {
-    let command = "cd \(path.escapingSpaces) && \(command) \(arguments.map(\.string).joined(separator: " "))"
+    environment: [String : String]? = nil
+) async throws -> (stdout: String, stderr: String) {
+    let command = "\(command) \(arguments.map(\.string).joined(separator: " "))"
 
-    return try process.launchBash(
+    return try await TSCBasic.Process.launchBash(
         with: command,
         logger: logger,
         outputHandle: outputHandle,
         errorHandle: errorHandle,
         environment: environment,
-        eofTimeout: eofTimeout
+        at: path == "." ? nil :
+            (path == "~" ? TSCBasic.localFileSystem.homeDirectory.pathString :
+            (path.starts(with: "~/") ? "\(TSCBasic.localFileSystem.homeDirectory.pathString)/\(path.dropFirst(2))" :
+            path))
     )
 }
 
@@ -56,7 +59,7 @@ import Logging
     to command: SafeString,
     arguments: [Argument] = [],
     at path: String = ".",
-    process: Process = .init(),
+    process: Foundation.Process = .init(),
     outputHandle: FileHandle? = nil,
     errorHandle: FileHandle? = nil,
     environment: [String : String]? = nil
@@ -92,30 +95,26 @@ import Logging
 @discardableResult public func shellOut(
     to command: ShellOutCommand,
     at path: String = ".",
-    process: Process = .init(),
     logger: Logger? = nil,
     outputHandle: FileHandle? = nil,
     errorHandle: FileHandle? = nil,
-    environment: [String : String]? = nil,
-    eofTimeout: DispatchTimeInterval = .milliseconds(10)
-) throws -> (stdout: String, stderr: String) {
-    try shellOut(
+    environment: [String : String]? = nil
+) async throws -> (stdout: String, stderr: String) {
+    try await shellOut(
         to: command.command,
         arguments: command.arguments,
         at: path,
-        process: process,
         logger: logger,
         outputHandle: outputHandle,
         errorHandle: errorHandle,
-        environment: environment,
-        eofTimeout: eofTimeout
+        environment: environment
     )
 }
 
 @discardableResult public func shellOutOldVersion(
     to command: ShellOutCommand,
     at path: String = ".",
-    process: Process = .init(),
+    process: Foundation.Process = .init(),
     outputHandle: FileHandle? = nil,
     errorHandle: FileHandle? = nil,
     environment: [String : String]? = nil
@@ -437,91 +436,53 @@ extension ShellOutCommand {
 
 // MARK: - Private
 
-private extension Process {
-    @discardableResult func launchBash(
+private extension TSCBasic.Process {
+    @discardableResult static func launchBash(
         with command: String,
         logger: Logger? = nil,
         outputHandle: FileHandle? = nil,
         errorHandle: FileHandle? = nil,
         environment: [String : String]? = nil,
-        eofTimeout: DispatchTimeInterval = .milliseconds(10)
-    ) throws -> (stdout: String, stderr: String) {
-        self.executableURL = URL(fileURLWithPath: "/bin/bash")
-        self.arguments = ["-c", command]
-
-        if let environment {
-            self.environment = environment
-        }
-
-        let outputPipe = Pipe(), errorPipe = Pipe()
-        self.standardOutput = outputPipe
-        self.standardError = errorPipe
-
-        // Because FileHandle's readabilityHandler might be called from a
-        // different queue from the calling queue, avoid data races by
-        // protecting reads and writes to outputData and errorData on
-        // a single dispatch queue.
-        let outputQueue = DispatchQueue(label: "bash-output-queue")
-        let outputGroup = DispatchGroup()
-        var outputData = Data(), errorData = Data()
-
-        outputGroup.enter()
-        outputPipe.fileHandleForReading.readabilityHandler = { handler in
-            let data = handler.availableData
-
-            if data.isEmpty { // EOF
-                handler.readabilityHandler = nil
-                outputGroup.leave()
-            } else {
-                outputQueue.async {
-                    outputData.append(data)
-                    outputHandle?.write(data)
-                }
+        at: String? = nil
+    ) async throws -> (stdout: String, stderr: String) {
+        let process = try Self.init(
+            arguments: ["/bin/bash", "-c", command],
+            environment: environment ?? ProcessEnv.vars,
+            workingDirectory: at.map { try .init(validating: $0) } ?? TSCBasic.localFileSystem.currentWorkingDirectory ?? .root,
+            outputRedirection: .collect(redirectStderr: false),
+            startNewProcessGroup: false,
+            loggingHandler: nil
+        )
+        
+        try process.launch()
+        
+        let result = try await process.waitUntilExit()
+        
+        try outputHandle?.write(contentsOf: (try? result.output.get()) ?? [])
+        try outputHandle?.close()
+        try errorHandle?.write(contentsOf: (try? result.stderrOutput.get()) ?? [])
+        try errorHandle?.close()
+        
+        guard case .terminated(code: let code) = result.exitStatus, code == 0 else {
+            let code: Int32
+            switch result.exitStatus {
+            case .terminated(code: let termCode): code = termCode
+            case .signalled(signal: let sigNo): code = -sigNo
             }
+            throw ShellOutError(
+                terminationStatus: code,
+                errorData: Data((try? result.stderrOutput.get()) ?? []),
+                outputData: Data((try? result.output.get()) ?? [])
+            )
         }
-
-        outputGroup.enter()
-        errorPipe.fileHandleForReading.readabilityHandler = { handler in
-            let data = handler.availableData
-
-            if data.isEmpty { // EOF
-                handler.readabilityHandler = nil
-                outputGroup.leave()
-            } else {
-                outputQueue.async {
-                    errorData.append(data)
-                    errorHandle?.write(data)
-                }
-            }
-        }
-
-        try self.run()
-        self.waitUntilExit()
-
-        if outputGroup.wait(timeout: .now() + eofTimeout) == .timedOut {
-            logger?.debug("ShellOut.launchBash: Timed out waiting for EOF! (command: \(command))")
-        }
-
-        // We know as of this point that either all blocks have been submitted to the
-        // queue already, or we've reached our wait timeout.
-        return try outputQueue.sync {
-            // Do not try to readToEnd() here; if we already got an EOF, there's definitely
-            // nothing to read, and if we timed out, trying to read here will just block
-            // even longer.
-            try outputHandle?.close()
-            try errorHandle?.close()
-
-            guard self.terminationStatus == 0, self.terminationReason == .exit else {
-                throw ShellOutError(
-                    terminationStatus: terminationStatus,
-                    errorData: errorData,
-                    outputData: outputData
-                )
-            }
-            return (stdout: outputData.shellOutput(), stderr: errorData.shellOutput())
-        }
+        return try (
+            stdout: String(result.utf8Output().trimmingSuffix(while: \.isNewline)),
+            stderr: String(result.utf8stderrOutput().trimmingSuffix(while: \.isNewline))
+        )
     }
+}
 
+extension Foundation.Process {
     @discardableResult func launchBashOldVersion(with command: String, outputHandle: FileHandle? = nil, errorHandle: FileHandle? = nil, environment: [String : String]? = nil) throws -> (stdout: String, stderr: String) {
 #if os(Linux)
         executableURL = URL(fileURLWithPath: "/bin/bash")

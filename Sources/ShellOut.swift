@@ -490,7 +490,7 @@ private extension Process {
         self.waitUntilExit()
 
         logger?.info("ShellOut.launchBash: Waiting on EOF... (command: \(command))")
-        if outputGroup.wait(timeout: .now() + .seconds(1)) == .timedOut {
+        if outputGroup.wait(timeout: .now() + .milliseconds(100)) == .timedOut {
             logger?.info("ShellOut.launchBash: Warning: Timed out waiting for EOF! (command: \(command))")
         } else {
             logger?.info("ShellOut.launchBash: EOFs received (command: \(command))")

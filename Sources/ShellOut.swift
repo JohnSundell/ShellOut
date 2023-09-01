@@ -447,9 +447,10 @@ private extension Process {
             self.environment = environment
         }
 
-        let outputPipe = Pipe(), errorPipe = Pipe()
-        self.standardOutput = outputPipe
-        self.standardError = errorPipe
+        let outputPipe = SocketPair()
+        let errorPipe = SocketPair()
+        self.standardOutput = outputPipe.fileHandleForWriting
+        self.standardError = errorPipe.fileHandleForWriting
 
         // Because FileHandle's readabilityHandler might be called from a
         // different queue from the calling queue, avoid data races by
@@ -644,5 +645,32 @@ private extension String {
 
     mutating func append(arguments: [String]) {
         self = appending(arguments: arguments)
+    }
+}
+
+
+final class SocketPair {
+    let fileHandleForReading: FileHandle
+    let fileHandleForWriting: FileHandle
+
+    init() {
+        let fds = UnsafeMutablePointer<Int32>.allocate(capacity: 2)
+        defer { fds.deallocate() }
+
+#if os(macOS)
+        let ret = socketpair(AF_UNIX, SOCK_STREAM, 0, fds)
+#else
+        let ret = socketpair(AF_UNIX, Int32(SOCK_STREAM.rawValue), 0, fds)
+#endif
+        switch (ret, errno) {
+        case (0, _):
+            self.fileHandleForReading = FileHandle(fileDescriptor: fds.pointee, closeOnDealloc: true)
+            self.fileHandleForWriting = FileHandle(fileDescriptor: fds.successor().pointee, closeOnDealloc: true)
+        case (-1, EMFILE), (-1, ENFILE):
+            self.fileHandleForReading = FileHandle(fileDescriptor: -1, closeOnDealloc: false)
+            self.fileHandleForWriting = FileHandle(fileDescriptor: -1, closeOnDealloc: false)
+        default:
+            fatalError("Error calling socketpair(): \(errno)")
+        }
     }
 }

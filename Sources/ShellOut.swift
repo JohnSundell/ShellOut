@@ -442,94 +442,78 @@ private extension Process {
             self.environment = environment
         }
 
+        let outputPipe = Pipe(), errorPipe = Pipe()
+        self.standardOutput = outputPipe
+        self.standardError = errorPipe
+
         // Because FileHandle's readabilityHandler might be called from a
-        // different queue from the calling queue, avoid a data race by
+        // different queue from the calling queue, avoid data races by
         // protecting reads and writes to outputData and errorData on
         // a single dispatch queue.
         let outputQueue = DispatchQueue(label: "bash-output-queue")
+        let outputGroup = DispatchGroup()
+        var outputData = Data(), errorData = Data()
 
-        var outputData = Data()
-        var errorData = Data()
-
-        let outputPipe = Pipe()
-        self.standardOutput = outputPipe
-
-        let errorPipe = Pipe()
-        self.standardError = errorPipe
-
+        outputGroup.enter()
         outputPipe.fileHandleForReading.readabilityHandler = { handler in
-            var data = handler.availableData
-            while !data.isEmpty {
-               let readData = data
-               logger?.info("ShellOut.launchBash: Read \(readData.count) bytes from stdout (readabilityHandler, command: \(command))")
+            let data = handler.availableData
+
+            if data.isEmpty { // EOF
+                logger?.info("ShellOut.launchBash: Reporting EOF on stdout (readabilityHandler, command: \(command))")
+                outputGroup.leave()
+            } else {
+                logger?.info("ShellOut.launchBash: Read \(data.count) bytes from stdout (readabilityHandler, command: \(command))")
                 outputQueue.async {
-                    logger?.info("ShellOut.launchBash: Reporting \(readData.count) bytes from stdout (readabilityHandler, command: \(command))")
-                    outputData.append(readData)
-                    outputHandle?.write(readData)
+                    logger?.info("ShellOut.launchBash: Reporting \(data.count) bytes from stdout (readabilityHandler, command: \(command))")
+                    outputData.append(data)
+                    outputHandle?.write(data)
                 }
-                data = handler.availableData
             }
         }
 
+        outputGroup.enter()
         errorPipe.fileHandleForReading.readabilityHandler = { handler in
-            var data = handler.availableData
-            while !data.isEmpty {
-               let readData = data
-               logger?.info("ShellOut.launchBash: Read \(readData.count) bytes from stderr (readabilityHandler, command: \(command))")
-                outputQueue.async {
-                    logger?.info("ShellOut.launchBash: Reporting \(readData.count) bytes from stderr (readabilityHandler, command: \(command))")
-                    errorData.append(readData)
-                    errorHandle?.write(readData)
-                }
-                data = handler.availableData
-            }
+            let data = handler.availableData
 
+            if data.isEmpty { // EOF
+                logger?.info("ShellOut.launchBash: Reporting EOF on stderr (readabilityHandler, command: \(command))")
+                outputGroup.leave()
+            } else {
+                outputQueue.async {
+                    errorData.append(data)
+                    errorHandle?.write(data)
+                }
+            }
         }
 
         try self.run()
-
         self.waitUntilExit()
 
-        logger?.info("ShellOut.launchBash (1): \(outputData as NSData) (readabilityHandler, command: \(command))")
-        outputQueue.sync(flags: .barrier) {}
+        logger?.info("ShellOut.launchBash: Waiting on EOF... (command: \(command))")
+        if outputGroup.wait(timeout: .now() + .seconds(1)) == .timedOut {
+            logger?.info("ShellOut.launchBash: Warning: Timed out waiting for EOF! (command: \(command))")
+        } else {
+            logger?.info("ShellOut.launchBash: EOFs received (command: \(command))")
+        }
 
-        outputPipe.fileHandleForReading.readabilityHandler = nil
-        errorPipe.fileHandleForReading.readabilityHandler = nil
+        // We know as of this point that either all blocks have been submitted to the
+        // queue already, or we've reached our wait timeout.
+        return try outputQueue.sync {
+            logger?.info("ShellOut.launchBash: Stdout: \(outputData as NSData) (command: \(command))")
 
-        // Spend as little time as possible inside the sync() block by doing
-        // this part in an async block.
-        logger?.info("ShellOut.launchBash (2): \(outputData as NSData) (readabilityHandler, command: \(command))")
-        return try outputQueue.sync(flags: .barrier) {
-            logger?.info("ShellOut.launchBash (3): \(outputData as NSData) (readabilityHandler, command: \(command))")
-            if let extraOutput = try? outputPipe.fileHandleForReading.readToEnd() {
-                logger?.info("ShellOut.launchBash: Read \(extraOutput.count) bytes from stdout (readToEnd), command: \(command)")
-                outputData.append(extraOutput)
-                outputHandle?.write(extraOutput)
-            }
-            logger?.info("ShellOut.launchBash (4): \(outputData as NSData) (readabilityHandler, command: \(command))")
-
-            if let extraError = try? errorPipe.fileHandleForReading.readToEnd() {
-                logger?.info("ShellOut.launchBash: Read \(extraError.count) bytes from stderr (readToEnd), command: \(command)")
-                errorData.append(extraError)
-                errorHandle?.write(extraError)
-            }
-            logger?.info("ShellOut.launchBash (5): \(outputData as NSData) (readabilityHandler, command: \(command))")
-
-            try outputPipe.fileHandleForReading.close()
-            try errorPipe.fileHandleForReading.close()
+            // Do not try to readToEnd() here; if we already got an EOF, there's definitely
+            // nothing to read, and if we timed out, trying to read here will just block
+            // even longer.
             try outputHandle?.close()
             try errorHandle?.close()
-            logger?.info("ShellOut.launchBash (6): \(outputData as NSData) (readabilityHandler, command: \(command))")
 
-            if self.terminationStatus != 0 {
-                logger?.info("ShellOut.launchBash (7): \(outputData as NSData) (readabilityHandler, command: \(command))")
+            guard self.terminationStatus == 0, self.terminationReason == .exit else {
                 throw ShellOutError(
                     terminationStatus: terminationStatus,
                     errorData: errorData,
                     outputData: outputData
                 )
             }
-            logger?.info("ShellOut.launchBash (8): \(outputData as NSData) (readabilityHandler, command: \(command))")
             return (stdout: outputData.shellOutput(), stderr: errorData.shellOutput())
         }
     }

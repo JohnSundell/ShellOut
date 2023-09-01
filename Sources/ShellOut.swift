@@ -37,7 +37,8 @@ import Logging
     logger: Logger? = nil,
     outputHandle: FileHandle? = nil,
     errorHandle: FileHandle? = nil,
-    environment: [String : String]? = nil
+    environment: [String : String]? = nil,
+    eofTimeout: DispatchTimeInterval = .milliseconds(10)
 ) throws -> (stdout: String, stderr: String) {
     let command = "cd \(path.escapingSpaces) && \(command) \(arguments.map(\.string).joined(separator: " "))"
 
@@ -46,7 +47,8 @@ import Logging
         logger: logger,
         outputHandle: outputHandle,
         errorHandle: errorHandle,
-        environment: environment
+        environment: environment,
+        eofTimeout: eofTimeout
     )
 }
 
@@ -94,7 +96,8 @@ import Logging
     logger: Logger? = nil,
     outputHandle: FileHandle? = nil,
     errorHandle: FileHandle? = nil,
-    environment: [String : String]? = nil
+    environment: [String : String]? = nil,
+    eofTimeout: DispatchTimeInterval = .milliseconds(10)
 ) throws -> (stdout: String, stderr: String) {
     try shellOut(
         to: command.command,
@@ -104,7 +107,8 @@ import Logging
         logger: logger,
         outputHandle: outputHandle,
         errorHandle: errorHandle,
-        environment: environment
+        environment: environment,
+        eofTimeout: eofTimeout
     )
 }
 
@@ -434,7 +438,14 @@ extension ShellOutCommand {
 // MARK: - Private
 
 private extension Process {
-    @discardableResult func launchBash(with command: String, logger: Logger? = nil, outputHandle: FileHandle? = nil, errorHandle: FileHandle? = nil, environment: [String : String]? = nil) throws -> (stdout: String, stderr: String) {
+    @discardableResult func launchBash(
+        with command: String,
+        logger: Logger? = nil,
+        outputHandle: FileHandle? = nil,
+        errorHandle: FileHandle? = nil,
+        environment: [String : String]? = nil,
+        eofTimeout: DispatchTimeInterval = .milliseconds(10)
+    ) throws -> (stdout: String, stderr: String) {
         self.executableURL = URL(fileURLWithPath: "/bin/bash")
         self.arguments = ["-c", command]
 
@@ -487,7 +498,7 @@ private extension Process {
         try self.run()
         self.waitUntilExit()
 
-        if outputGroup.wait(timeout: .now() + .milliseconds(100)) == .timedOut {
+        if outputGroup.wait(timeout: .now() + eofTimeout) == .timedOut {
             logger?.warning("ShellOut.launchBash: Timed out waiting for EOF! (command: \(command))")
         }
 

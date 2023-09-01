@@ -460,6 +460,7 @@ private extension Process {
 
             if data.isEmpty { // EOF
                 logger?.info("ShellOut.launchBash: Reporting EOF on stdout (readabilityHandler, command: \(command))")
+                handler.readabilityHandler = nil
                 outputGroup.leave()
             } else {
                 logger?.info("ShellOut.launchBash: Read \(data.count) bytes from stdout (readabilityHandler, command: \(command))")
@@ -477,6 +478,7 @@ private extension Process {
 
             if data.isEmpty { // EOF
                 logger?.info("ShellOut.launchBash: Reporting EOF on stderr (readabilityHandler, command: \(command))")
+                handler.readabilityHandler = nil
                 outputGroup.leave()
             } else {
                 outputQueue.async {

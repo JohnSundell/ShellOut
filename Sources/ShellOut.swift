@@ -499,7 +499,7 @@ private extension Process {
         self.waitUntilExit()
 
         if outputGroup.wait(timeout: .now() + eofTimeout) == .timedOut {
-            logger?.warning("ShellOut.launchBash: Timed out waiting for EOF! (command: \(command))")
+            logger?.debug("ShellOut.launchBash: Timed out waiting for EOF! (command: \(command))")
         }
 
         // We know as of this point that either all blocks have been submitted to the

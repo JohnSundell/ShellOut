@@ -6,7 +6,6 @@
 
 import Foundation
 import Dispatch
-import Logging
 
 // MARK: - API
 
@@ -34,7 +33,6 @@ import Logging
     arguments: [Argument] = [],
     at path: String = ".",
     process: Process = .init(),
-    logger: Logger? = nil,
     outputHandle: FileHandle? = nil,
     errorHandle: FileHandle? = nil,
     environment: [String : String]? = nil,
@@ -44,7 +42,6 @@ import Logging
 
     return try process.launchBash(
         with: command,
-        logger: logger,
         outputHandle: outputHandle,
         errorHandle: errorHandle,
         environment: environment,
@@ -93,7 +90,6 @@ import Logging
     to command: ShellOutCommand,
     at path: String = ".",
     process: Process = .init(),
-    logger: Logger? = nil,
     outputHandle: FileHandle? = nil,
     errorHandle: FileHandle? = nil,
     environment: [String : String]? = nil,
@@ -104,7 +100,6 @@ import Logging
         arguments: command.arguments,
         at: path,
         process: process,
-        logger: logger,
         outputHandle: outputHandle,
         errorHandle: errorHandle,
         environment: environment,
@@ -440,7 +435,6 @@ extension ShellOutCommand {
 private extension Process {
     @discardableResult func launchBash(
         with command: String,
-        logger: Logger? = nil,
         outputHandle: FileHandle? = nil,
         errorHandle: FileHandle? = nil,
         environment: [String : String]? = nil,
@@ -498,9 +492,7 @@ private extension Process {
         try self.run()
         self.waitUntilExit()
 
-        if outputGroup.wait(timeout: .now() + eofTimeout) == .timedOut {
-            logger?.warning("ShellOut.launchBash: Timed out waiting for EOF! (command: \(command))")
-        }
+        _ = outputGroup.wait(timeout: .now() + eofTimeout)
 
         // We know as of this point that either all blocks have been submitted to the
         // queue already, or we've reached our wait timeout.

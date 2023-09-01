@@ -459,13 +459,10 @@ private extension Process {
             let data = handler.availableData
 
             if data.isEmpty { // EOF
-                logger?.info("ShellOut.launchBash: Reporting EOF on stdout (readabilityHandler, command: \(command))")
                 handler.readabilityHandler = nil
                 outputGroup.leave()
             } else {
-                logger?.info("ShellOut.launchBash: Read \(data.count) bytes from stdout (readabilityHandler, command: \(command))")
                 outputQueue.async {
-                    logger?.info("ShellOut.launchBash: Reporting \(data.count) bytes from stdout (readabilityHandler, command: \(command))")
                     outputData.append(data)
                     outputHandle?.write(data)
                 }
@@ -477,7 +474,6 @@ private extension Process {
             let data = handler.availableData
 
             if data.isEmpty { // EOF
-                logger?.info("ShellOut.launchBash: Reporting EOF on stderr (readabilityHandler, command: \(command))")
                 handler.readabilityHandler = nil
                 outputGroup.leave()
             } else {
@@ -491,18 +487,13 @@ private extension Process {
         try self.run()
         self.waitUntilExit()
 
-        logger?.info("ShellOut.launchBash: Waiting on EOF... (command: \(command))")
         if outputGroup.wait(timeout: .now() + .milliseconds(100)) == .timedOut {
-            logger?.info("ShellOut.launchBash: Warning: Timed out waiting for EOF! (command: \(command))")
-        } else {
-            logger?.info("ShellOut.launchBash: EOFs received (command: \(command))")
+            logger?.warning("ShellOut.launchBash: Timed out waiting for EOF! (command: \(command))")
         }
 
         // We know as of this point that either all blocks have been submitted to the
         // queue already, or we've reached our wait timeout.
         return try outputQueue.sync {
-            logger?.info("ShellOut.launchBash: Stdout: \(outputData as NSData) (command: \(command))")
-
             // Do not try to readToEnd() here; if we already got an EOF, there's definitely
             // nothing to read, and if we timed out, trying to read here will just block
             // even longer.

@@ -55,25 +55,6 @@ import Algorithms
     )
 }
 
-@discardableResult public func shellOutOldVersion(
-    to command: SafeString,
-    arguments: [Argument] = [],
-    at path: String = ".",
-    process: Foundation.Process = .init(),
-    outputHandle: FileHandle? = nil,
-    errorHandle: FileHandle? = nil,
-    environment: [String : String]? = nil
-) throws -> (stdout: String, stderr: String) {
-    let command = "cd \(path.escapingSpaces) && \(command) \(arguments.map(\.string).joined(separator: " "))"
-
-    return try process.launchBashOldVersion(
-        with: command,
-        outputHandle: outputHandle,
-        errorHandle: errorHandle,
-        environment: environment
-    )
-}
-
 /**
  *  Run a pre-defined shell command using Bash
  *
@@ -105,25 +86,6 @@ import Algorithms
         arguments: command.arguments,
         at: path,
         logger: logger,
-        outputHandle: outputHandle,
-        errorHandle: errorHandle,
-        environment: environment
-    )
-}
-
-@discardableResult public func shellOutOldVersion(
-    to command: ShellOutCommand,
-    at path: String = ".",
-    process: Foundation.Process = .init(),
-    outputHandle: FileHandle? = nil,
-    errorHandle: FileHandle? = nil,
-    environment: [String : String]? = nil
-) throws -> (stdout: String, stderr: String) {
-    try shellOutOldVersion(
-        to: command.command,
-        arguments: command.arguments,
-        at: path,
-        process: process,
         outputHandle: outputHandle,
         errorHandle: errorHandle,
         environment: environment
@@ -482,105 +444,6 @@ private extension TSCBasic.Process {
     }
 }
 
-extension Foundation.Process {
-    @discardableResult func launchBashOldVersion(with command: String, outputHandle: FileHandle? = nil, errorHandle: FileHandle? = nil, environment: [String : String]? = nil) throws -> (stdout: String, stderr: String) {
-#if os(Linux)
-        executableURL = URL(fileURLWithPath: "/bin/bash")
-#else
-        launchPath = "/bin/bash"
-#endif
-        arguments = ["-c", command]
-
-        if let environment = environment {
-            self.environment = environment
-        }
-
-        // Because FileHandle's readabilityHandler might be called from a
-        // different queue from the calling queue, avoid a data race by
-        // protecting reads and writes to outputData and errorData on
-        // a single dispatch queue.
-        let outputQueue = DispatchQueue(label: "bash-output-queue")
-
-        var outputData = Data()
-        var errorData = Data()
-
-        let outputPipe = Pipe()
-        standardOutput = outputPipe
-
-        let errorPipe = Pipe()
-        standardError = errorPipe
-
-        #if !os(Linux)
-        outputPipe.fileHandleForReading.readabilityHandler = { handler in
-            let data = handler.availableData
-            outputQueue.async {
-                outputData.append(data)
-                outputHandle?.write(data)
-            }
-        }
-
-        errorPipe.fileHandleForReading.readabilityHandler = { handler in
-            let data = handler.availableData
-            outputQueue.async {
-                errorData.append(data)
-                errorHandle?.write(data)
-            }
-        }
-        #endif
-
-#if os(Linux)
-        try run()
-#else
-        launch()
-#endif
-
-        #if os(Linux)
-        outputQueue.sync {
-            outputData = outputPipe.fileHandleForReading.readDataToEndOfFile()
-            errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
-        }
-        #endif
-
-        waitUntilExit()
-
-        if let handle = outputHandle, !handle.isStandard {
-            handle.closeFile()
-        }
-
-        if let handle = errorHandle, !handle.isStandard {
-            handle.closeFile()
-        }
-
-        #if !os(Linux)
-        outputPipe.fileHandleForReading.readabilityHandler = nil
-        errorPipe.fileHandleForReading.readabilityHandler = nil
-        #endif
-
-        // Block until all writes have occurred to outputData and errorData,
-        // and then read the data back out.
-        return try outputQueue.sync {
-            if terminationStatus != 0 {
-                throw ShellOutError(
-                    terminationStatus: terminationStatus,
-                    errorData: errorData,
-                    outputData: outputData
-                )
-            }
-
-            return (stdout: outputData.shellOutput(), stderr: errorData.shellOutput())
-        }
-    }
-
-}
-
-private extension FileHandle {
-    var isStandard: Bool {
-        return self === FileHandle.standardOutput ||
-            self === FileHandle.standardError ||
-            self === FileHandle.standardInput
-    }
-}
-
 private extension Data {
     func shellOutput() -> String {
         let output = String(decoding: self, as: UTF8.self)
@@ -591,27 +454,5 @@ private extension Data {
 
         return output
 
-    }
-}
-
-private extension String {
-    var escapingSpaces: String {
-        return replacingOccurrences(of: " ", with: "\\ ")
-    }
-
-    func appending(argument: String) -> String {
-        return "\(self) \"\(argument)\""
-    }
-
-    func appending(arguments: [String]) -> String {
-        return appending(argument: arguments.joined(separator: "\" \""))
-    }
-
-    mutating func append(argument: String) {
-        self = appending(argument: argument)
-    }
-
-    mutating func append(arguments: [String]) {
-        self = appending(arguments: arguments)
     }
 }

@@ -6,6 +6,9 @@
 
 import Foundation
 import Dispatch
+import Logging
+import TSCBasic
+import Algorithms
 
 // MARK: - API
 
@@ -32,18 +35,23 @@ import Dispatch
     to command: SafeString,
     arguments: [Argument] = [],
     at path: String = ".",
-    process: Process = .init(),
+    logger: Logger? = nil,
     outputHandle: FileHandle? = nil,
     errorHandle: FileHandle? = nil,
     environment: [String : String]? = nil
-) throws -> String {
-    let command = "cd \(path.escapingSpaces) && \(command) \(arguments.map(\.string).joined(separator: " "))"
+) async throws -> (stdout: String, stderr: String) {
+    let command = "\(command) \(arguments.map(\.string).joined(separator: " "))"
 
-    return try process.launchBash(
+    return try await TSCBasic.Process.launchBash(
         with: command,
+        logger: logger,
         outputHandle: outputHandle,
         errorHandle: errorHandle,
-        environment: environment
+        environment: environment,
+        at: path == "." ? nil :
+            (path == "~" ? TSCBasic.localFileSystem.homeDirectory.pathString :
+            (path.starts(with: "~/") ? "\(TSCBasic.localFileSystem.homeDirectory.pathString)/\(path.dropFirst(2))" :
+            path))
     )
 }
 
@@ -68,16 +76,16 @@ import Dispatch
 @discardableResult public func shellOut(
     to command: ShellOutCommand,
     at path: String = ".",
-    process: Process = .init(),
+    logger: Logger? = nil,
     outputHandle: FileHandle? = nil,
     errorHandle: FileHandle? = nil,
     environment: [String : String]? = nil
-) throws -> String {
-    try shellOut(
+) async throws -> (stdout: String, stderr: String) {
+    try await shellOut(
         to: command.command,
         arguments: command.arguments,
         at: path,
-        process: process,
+        logger: logger,
         outputHandle: outputHandle,
         errorHandle: errorHandle,
         environment: environment
@@ -390,69 +398,49 @@ extension ShellOutCommand {
 
 // MARK: - Private
 
-private extension Process {
-    @discardableResult func launchBash(with command: String, outputHandle: FileHandle? = nil, errorHandle: FileHandle? = nil, environment: [String : String]? = nil) throws -> String {
-        executableURL = URL(fileURLWithPath: "/bin/bash")
-        arguments = ["-c", command]
-
-        if let environment = environment {
-            self.environment = environment
-        }
-
-        // Because FileHandle's readabilityHandler might be called from a
-        // different queue from the calling queue, avoid a data race by
-        // protecting reads and writes to outputData and errorData on
-        // a single dispatch queue.
-        let outputQueue = DispatchQueue(label: "bash-output-queue")
-
-        var outputData = Data()
-        var errorData = Data()
-
-        let outputPipe = Pipe()
-        standardOutput = outputPipe
-
-        let errorPipe = Pipe()
-        standardError = errorPipe
-
-        outputPipe.fileHandleForReading.readabilityHandler = { handler in
-            let data = handler.availableData
-            outputQueue.async {
-                outputData.append(data)
-                outputHandle?.write(data)
+private extension TSCBasic.Process {
+    @discardableResult static func launchBash(
+        with command: String,
+        logger: Logger? = nil,
+        outputHandle: FileHandle? = nil,
+        errorHandle: FileHandle? = nil,
+        environment: [String : String]? = nil,
+        at: String? = nil
+    ) async throws -> (stdout: String, stderr: String) {
+        let process = try Self.init(
+            arguments: ["/bin/bash", "-c", command],
+            environment: environment ?? ProcessEnv.vars,
+            workingDirectory: at.map { try .init(validating: $0) } ?? TSCBasic.localFileSystem.currentWorkingDirectory ?? .root,
+            outputRedirection: .collect(redirectStderr: false),
+            startNewProcessGroup: false,
+            loggingHandler: nil
+        )
+        
+        try process.launch()
+        
+        let result = try await process.waitUntilExit()
+        
+        try outputHandle?.write(contentsOf: (try? result.output.get()) ?? [])
+        try outputHandle?.close()
+        try errorHandle?.write(contentsOf: (try? result.stderrOutput.get()) ?? [])
+        try errorHandle?.close()
+        
+        guard case .terminated(code: let code) = result.exitStatus, code == 0 else {
+            let code: Int32
+            switch result.exitStatus {
+            case .terminated(code: let termCode): code = termCode
+            case .signalled(signal: let sigNo): code = -sigNo
             }
+            throw ShellOutError(
+                terminationStatus: code,
+                errorData: Data((try? result.stderrOutput.get()) ?? []),
+                outputData: Data((try? result.output.get()) ?? [])
+            )
         }
-
-        errorPipe.fileHandleForReading.readabilityHandler = { handler in
-            let data = handler.availableData
-            outputQueue.async {
-                errorData.append(data)
-                errorHandle?.write(data)
-            }
-        }
-
-        try run()
-
-        waitUntilExit()
-
-        outputHandle?.closeFile()
-        errorHandle?.closeFile()
-
-        outputPipe.fileHandleForReading.readabilityHandler = nil
-        errorPipe.fileHandleForReading.readabilityHandler = nil
-
-        // Block until all writes have occurred to outputData and errorData,
-        // and then read the data back out.
-        return try outputQueue.sync {
-            if terminationStatus != 0 {
-                throw ShellOutError(
-                    terminationStatus: terminationStatus,
-                    errorData: errorData,
-                    outputData: outputData
-                )
-            }
-
-            return outputData.shellOutput()
-        }
+        return try (
+            stdout: String(result.utf8Output().trimmingSuffix(while: \.isNewline)),
+            stderr: String(result.utf8stderrOutput().trimmingSuffix(while: \.isNewline))
+        )
     }
 }
 
@@ -466,27 +454,5 @@ private extension Data {
 
         return output
 
-    }
-}
-
-private extension String {
-    var escapingSpaces: String {
-        return replacingOccurrences(of: " ", with: "\\ ")
-    }
-
-    func appending(argument: String) -> String {
-        return "\(self) \"\(argument)\""
-    }
-
-    func appending(arguments: [String]) -> String {
-        return appending(argument: arguments.joined(separator: "\" \""))
-    }
-
-    mutating func append(argument: String) {
-        self = appending(argument: argument)
-    }
-
-    mutating func append(arguments: [String]) {
-        self = appending(arguments: arguments)
     }
 }

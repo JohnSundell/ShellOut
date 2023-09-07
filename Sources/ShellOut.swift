@@ -405,8 +405,6 @@ private extension TSCBasic.Process {
         environment: [String : String]? = nil,
         at: String? = nil
     ) async throws -> (stdout: String, stderr: String) {
-        print("command:", command)
-        print("arguments:", arguments)
         let process = try Self.init(
             arguments: [command] + arguments,
             environment: environment ?? ProcessEnv.vars,

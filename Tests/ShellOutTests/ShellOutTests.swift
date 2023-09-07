@@ -95,7 +95,7 @@ class ShellOutTests: XCTestCase {
 
     func testThrowingError() async {
         do {
-            try await shellOut(to: "cd", arguments: ["notADirectory"])
+            try await shellOut(to: .bash(arguments: ["cd notADirectory"]))
             XCTFail("Expected expression to throw")
         } catch let error as ShellOutError {
             XCTAssertTrue(error.message.contains("notADirectory"))
@@ -141,9 +141,8 @@ class ShellOutTests: XCTestCase {
         let pipe = Pipe()
 
         do {
-            try await shellOut(to: "cd",
-                         arguments: ["notADirectory"],
-                         errorHandle: pipe.fileHandleForWriting)
+            try await shellOut(to: .bash(arguments: ["cd notADirectory"]),
+                               errorHandle: pipe.fileHandleForWriting)
             XCTFail("Expected expression to throw")
         } catch let error as ShellOutError {
             XCTAssertTrue(error.message.contains("notADirectory"))

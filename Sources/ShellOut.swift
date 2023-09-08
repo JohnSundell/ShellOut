@@ -386,13 +386,6 @@ extension ShellOutError: LocalizedError {
     }
 }
 
-extension ShellOutCommand {
-    // TODO: consolidate with ShellOutError
-    struct Error: Swift.Error {
-        var message: String
-    }
-}
-
 // MARK: - Private
 
 private extension TSCBasic.Process {

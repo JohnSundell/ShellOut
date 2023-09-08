@@ -13,12 +13,11 @@ import Algorithms
 // MARK: - API
 
 /**
- *  Run a shell command using Bash
+ *  Run a shell command
  *
  *  - parameter command: The command to run
  *  - parameter arguments: The arguments to pass to the command
  *  - parameter path: The path to execute the commands at (defaults to current folder)
- *  - parameter process: Which process to use to perform the command (default: A new one)
  *  - parameter outputHandle: Any `FileHandle` that any output (STDOUT) should be redirected to
  *              (at the moment this is only supported on macOS)
  *  - parameter errorHandle: Any `FileHandle` that any error output (STDERR) should be redirected to
@@ -55,11 +54,10 @@ import Algorithms
 }
 
 /**
- *  Run a pre-defined shell command using Bash
+ *  Run a pre-defined shell command
  *
  *  - parameter command: The command to run
  *  - parameter path: The path to execute the commands at (defaults to current folder)
- *  - parameter process: Which process to use to perform the command (default: A new one)
  *  - parameter outputHandle: Any `FileHandle` that any output (STDOUT) should be redirected to
  *  - parameter errorHandle: Any `FileHandle` that any error output (STDERR) should be redirected to
  *  - parameter environment: The environment for the command.

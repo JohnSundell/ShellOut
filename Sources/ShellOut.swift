@@ -130,7 +130,7 @@ extension ShellOutCommand: CustomStringConvertible {
 public extension ShellOutCommand {
     static func bash(arguments: [Argument]) -> Self {
         let arguments = arguments.first == "-c" ? Array(arguments.dropFirst()) : arguments
-        return .init(command: "bash", arguments: ["-c", arguments.map(\.string).joined(separator: " ")])
+        return .init(command: "bash", arguments: ["-c", arguments.map(\.description).joined(separator: " ")])
     }
 }
 
@@ -158,7 +158,7 @@ public extension ShellOutCommand {
     /// Create a git commit with a given message (also adds all untracked file to the index)
     static func gitCommit(message: String, allowingPrompt: Bool = true, quiet: Bool = true) -> ShellOutCommand {
         var command = git(allowingPrompt: allowingPrompt)
-            .appending(arguments: ["commit", "-a", "-m", message.quoted.string])
+            .appending(arguments: ["commit", "-a", "-m", "\(message.quoted)"])
 
         if quiet {
             command.append(argument: "--quiet")
@@ -245,7 +245,7 @@ public extension ShellOutCommand {
 
     /// Create a file with a given name and contents (will overwrite any existing file with the same name)
     static func createFile(named name: String, contents: String) -> ShellOutCommand {
-        .init(command: "bash", arguments: ["-c", #"echo \#(contents.quoted) > \#(name.quoted)"#])
+        .bash(arguments: ["-c", #"echo \#(contents.quoted) > \#(name.quoted)"#.verbatim])
     }
 
     /// Move a file from one path to another
@@ -284,21 +284,6 @@ public extension ShellOutCommand {
     }
 }
 
-/// Marathon commands
-public extension ShellOutCommand {
-    /// Run a Marathon Swift script
-    static func runMarathonScript(at path: String, arguments: [String] = []) -> ShellOutCommand {
-        .init(command: "marathon",
-              arguments: ["run", path] + arguments)
-    }
-
-    /// Update all Swift packages managed by Marathon
-    static func updateMarathonPackages() -> ShellOutCommand {
-        .init(command: "marathon",
-              arguments: ["update"])
-    }
-}
-
 /// Swift Package Manager commands
 public extension ShellOutCommand {
     /// Enum defining available package types when using the Swift Package Manager
@@ -316,7 +301,7 @@ public extension ShellOutCommand {
     /// Create a Swift package with a given type (see SwiftPackageType for options)
     static func createSwiftPackage(withType type: SwiftPackageType = .library) -> ShellOutCommand {
         .init(command: "swift",
-              arguments: ["package init --type \(type)"])
+              arguments: ["package", "init", "--type", "\(type)"])
     }
 
     /// Update all Swift package dependencies
@@ -333,28 +318,7 @@ public extension ShellOutCommand {
     /// Test a Swift package using a given configuration (see SwiftBuildConfiguration for options)
     static func testSwiftPackage(withConfiguration configuration: SwiftBuildConfiguration = .debug) -> ShellOutCommand {
         .init(command: "swift",
-              arguments: ["test -c \(configuration)"])
-    }
-}
-
-/// Fastlane commands
-public extension ShellOutCommand {
-    /// Run Fastlane using a given lane
-    static func runFastlane(usingLane lane: String) -> ShellOutCommand {
-        .init(command: "fastlane", arguments: [lane])
-    }
-}
-
-/// CocoaPods commands
-public extension ShellOutCommand {
-    /// Update all CocoaPods dependencies
-    static func updateCocoaPods() -> ShellOutCommand {
-        .init(command: "pod", arguments: ["update"])
-    }
-
-    /// Install all CocoaPods dependencies
-    static func installCocoaPods() -> ShellOutCommand {
-        .init(command: "pod", arguments: ["install"])
+              arguments: ["test", "-c", "\(configuration)"])
     }
 }
 

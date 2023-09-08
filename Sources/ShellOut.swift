@@ -104,10 +104,6 @@ public struct ShellOutCommand {
         self.arguments = arguments
     }
 
-    public var string: String {
-        ([command] + arguments).joined(separator: " ")
-    }
-
     public func appending(arguments newArguments: [String]) -> Self {
         .init(command: command, arguments: arguments + newArguments)
     }
@@ -122,6 +118,12 @@ public struct ShellOutCommand {
 
     public mutating func append(argument: String) {
         append(arguments: [argument])
+    }
+}
+
+extension ShellOutCommand: CustomStringConvertible {
+    public var description: String {
+        ([command] + arguments).joined(separator: " ")
     }
 }
 

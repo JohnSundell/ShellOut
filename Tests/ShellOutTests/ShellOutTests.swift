@@ -28,23 +28,23 @@ func XCTAssertEqualAsync<T>(
 class ShellOutTests: XCTestCase {
     func test_appendArguments() throws {
         var cmd = ShellOutCommand(command: "foo")
-        XCTAssertEqual(cmd.string, "foo")
+        XCTAssertEqual(cmd.description, "foo")
         cmd.append(arguments: [";", "bar"])
-        XCTAssertEqual(cmd.string, "foo ; bar" )
+        XCTAssertEqual(cmd.description, "foo ; bar" )
         cmd.append(arguments: ["> baz"])
-        XCTAssertEqual(cmd.string, "foo ; bar > baz" )
+        XCTAssertEqual(cmd.description, "foo ; bar > baz" )
     }
 
     func test_appendingArguments() throws {
         let cmd = ShellOutCommand(command: "foo")
         XCTAssertEqual(
-            cmd.appending(arguments: [";", "bar"]).string,
+            cmd.appending(arguments: [";", "bar"]).description,
             "foo ; bar"
         )
         XCTAssertEqual(
             cmd.appending(arguments: [";", "bar"])
                 .appending(arguments: ["> baz"])
-                .string,
+                .description,
             "foo ; bar > baz"
         )
     }

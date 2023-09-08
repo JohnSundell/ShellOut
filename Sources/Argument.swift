@@ -1,7 +1,7 @@
 import Foundation
 
 
-public enum Argument {
+public enum Argument: Equatable {
     case quoted(QuotedString)
     case verbatim(String)
 
@@ -11,15 +11,6 @@ public enum Argument {
 
     public init(verbatim string: String) {
         self = .verbatim(string)
-    }
-
-    public var string: String {
-        switch self {
-            case let .quoted(value):
-                return value.quoted
-            case let .verbatim(string):
-                return string
-        }
     }
 }
 
@@ -32,7 +23,14 @@ extension Argument: ExpressibleByStringLiteral {
 
 
 extension Argument: CustomStringConvertible {
-    public var description: String { string }
+    public var description: String {
+        switch self {
+            case let .quoted(value):
+                return value.quoted
+            case let .verbatim(string):
+                return string
+        }
+    }
 }
 
 

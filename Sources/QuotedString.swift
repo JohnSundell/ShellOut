@@ -1,7 +1,7 @@
 import ShellQuote
 
 
-public struct QuotedString {
+public struct QuotedString: Equatable {
     public var unquoted: String
     public var quoted: String
 

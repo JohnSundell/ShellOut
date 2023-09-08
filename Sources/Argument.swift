@@ -1,7 +1,7 @@
 import Foundation
 
 
-public enum Argument {
+public enum Argument: Equatable {
     case quoted(QuotedString)
     case verbatim(String)
 

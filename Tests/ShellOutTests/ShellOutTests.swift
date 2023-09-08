@@ -191,6 +191,15 @@ class ShellOutTests: XCTestCase {
         await XCTAssertEqualAsync(try await shellOut(to: .readFile(at: filePath), logger: .init(label: "test")).stdout, "Hello again")
     }
 
+    func testBash() async throws {
+        // Without explicit -c parameter
+        await XCTAssertEqualAsync(try await shellOut(to: .bash(arguments: ["echo", "foo"])).stdout,
+                                  "foo")
+        // With explicit -c parameter
+        await XCTAssertEqualAsync(try await shellOut(to: .bash(arguments: ["-c", "echo", "foo"])).stdout,
+                                  "foo")
+    }
+
     func testBashArgumentQuoting() async throws {
         await XCTAssertEqualAsync(try await shellOut(to: .bash(arguments: ["echo",
                                                                            "foo ; echo bar".quoted])).stdout,

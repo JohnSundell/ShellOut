@@ -129,7 +129,8 @@ extension ShellOutCommand: CustomStringConvertible {
 
 public extension ShellOutCommand {
     static func bash(arguments: [Argument]) -> Self {
-        .init(command: "bash", arguments: ["-c", arguments.map(\.string).joined(separator: " ")])
+        let arguments = arguments.first == "-c" ? Array(arguments.dropFirst()) : arguments
+        return .init(command: "bash", arguments: ["-c", arguments.map(\.string).joined(separator: " ")])
     }
 }
 

@@ -1,6 +1,5 @@
 import ShellQuote
 
-
 public struct QuotedString: Equatable {
     public var unquoted: String
     public var quoted: String
@@ -10,7 +9,6 @@ public struct QuotedString: Equatable {
         self.quoted = ShellQuote.quote(value)
     }
 }
-
 
 extension QuotedString: CustomStringConvertible {
     public var description: String { quoted }

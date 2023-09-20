@@ -102,13 +102,14 @@ private extension TSCBasic.Process {
         environment: [String : String]? = nil,
         at: String? = nil
     ) async throws -> (stdout: String, stderr: String) {
-        let process = try Self.init(
+        let actualCwd = try at.map { try .init(validating: $0) } ?? TSCBasic.localFileSystem.currentWorkingDirectory ?? .root
+        let process = Self.init(
             arguments: [command] + arguments,
             environment: environment ?? ProcessEnv.vars,
-            workingDirectory: at.map { try .init(validating: $0) } ?? TSCBasic.localFileSystem.currentWorkingDirectory ?? .root,
+            workingDirectory: actualCwd,
             outputRedirection: .collect(redirectStderr: false),
             startNewProcessGroup: false,
-            loggingHandler: nil
+            loggingHandler: logger.map { logger in { logger.debug("\($0)", metadata: ["cwd": .string(actualCwd.pathString)]) } }
         )
         
         try process.launch()

@@ -32,7 +32,7 @@ jobs:
       matrix:
         image: [
           'swift:5.8',
-          'swiftlang/swift@sha256:f212429011a4c3592ffaa660fd78b5bc149e9df7920da02dfc0e7a761582fa10' # swiftlang/swift:nightly-5.9-focal 2023-08-16
+          'swift:5.9'
         ]
     container:
       image: ${{ matrix.image }}

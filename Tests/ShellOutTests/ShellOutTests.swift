@@ -4,28 +4,34 @@
  *  Licensed under the MIT license. See LICENSE file.
  */
 
+import Logging
+import TSCBasic
 import XCTest
 @testable import ShellOut
 
-func XCTAssertEqualAsync<T>(
-    _ expression1: @autoclosure () async throws -> T,
-    _ expression2: @autoclosure () async throws -> T,
-    _ message: @autoclosure () -> String = "",
-    file: StaticString = #filePath,
-    line: UInt = #line
-) async where T: Equatable {
-    do {
-        let expr1 = try await expression1()
-        let expr2 = try await expression2()
-
-        return XCTAssertEqual(expr1, expr2, message(), file: file, line: line)
-    } catch {
-        // Trick XCTest into behaving correctly for a thrown error.
-        return XCTAssertEqual(try { () -> Bool in throw error }(), false, message(), file: file, line: line)
+final class ShellOutTests: XCTestCase {
+    static var temporaryDirectoryUrl: URL!
+    static var logger: Logger!
+    
+    override class func setUp() {
+        XCTAssert(isLoggingConfigured)
+        self.logger = .init(label: "test")
+        // This is technically a misuse of the `withTemporaryDirectory()` utility, but there's no equivalent of
+        // the `TemporaryFile` API for drectories and this is (much) easier than directly invoking `mkdtemp(3)`.
+        // This is done in the class setUp rather than the instance method so it happens only once per test run,
+        // rather than for each single test.
+        self.temporaryDirectoryUrl = try! withTemporaryDirectory(prefix: "ShellOutTests", removeTreeOnDeinit: false, { $0.asURL })
     }
-}
-
-class ShellOutTests: XCTestCase {
+    
+    override class func tearDown() {
+        try? FileManager.default.removeItem(at: self.temporaryDirectoryUrl)
+    }
+    
+    var logger: Logger { Self.logger }
+    var tempUrl: URL { Self.temporaryDirectoryUrl }
+    func tempUrl(filename: String) -> URL { Self.temporaryDirectoryUrl.appendingPathComponent(filename, isDirectory: false) }
+    func tempUrl(directory: String) -> URL { Self.temporaryDirectoryUrl.appendingPathComponent(directory, isDirectory: true) }
+    
     func test_appendArguments() throws {
         var cmd = ShellOutCommand(command: "foo")
         XCTAssertEqual(cmd.description, "foo")
@@ -50,26 +56,27 @@ class ShellOutTests: XCTestCase {
     }
 
     func testWithoutArguments() async throws {
-        let uptime = try await shellOut(to: "uptime").stdout
+        let uptime = try await shellOut(to: "uptime", logger: logger).stdout
         XCTAssertTrue(uptime.contains("load average"))
     }
 
     func testWithArguments() async throws {
-        let echo = try await shellOut(to: "echo", arguments: ["Hello world"]).stdout
+        let echo = try await shellOut(to: "echo", arguments: ["Hello world"], logger: logger).stdout
         XCTAssertEqual(echo, "Hello world")
     }
 
     func testSingleCommandAtPath() async throws {
-        let tempDir = NSTemporaryDirectory()
         try await shellOut(
             to: "bash",
-            arguments: ["-c", #"echo Hello > "\#(tempDir)/ShellOutTests-SingleCommand.txt""#]
+            arguments: ["-c", #"echo Hello > "\#(tempUrl(filename: "ShellOutTests-SingleCommand.txt").path)""#],
+            logger: logger
         )
 
         let textFileContent = try await shellOut(
             to: "cat",
             arguments:  ["ShellOutTests-SingleCommand.txt"],
-            at: tempDir
+            at: tempUrl.path,
+            logger: logger
         ).stdout
 
         XCTAssertEqual(textFileContent, "Hello")
@@ -78,31 +85,33 @@ class ShellOutTests: XCTestCase {
     func testSingleCommandAtPathContainingSpace() async throws {
         try await shellOut(to: "mkdir",
                      arguments: ["-p", "ShellOut Test Folder"],
-                     at: NSTemporaryDirectory())
+                     at: tempUrl.path,
+                     logger: logger)
+        let testFolderUrl = tempUrl(directory: "ShellOut Test Folder")
         try await shellOut(to: "bash", arguments: ["-c", "echo Hello > File"],
-                     at: NSTemporaryDirectory() + "ShellOut Test Folder")
+                     at: testFolderUrl.path,
+                     logger: logger)
 
         let output = try await shellOut(
             to: "cat",
-            arguments: ["\(NSTemporaryDirectory())ShellOut Test Folder/File"]).stdout
+            arguments: [testFolderUrl.appendingPathComponent("File", isDirectory: false).path],
+            logger: logger).stdout
         XCTAssertEqual(output, "Hello")
     }
 
     func testSingleCommandAtPathContainingTilde() async throws {
-        let homeContents = try await shellOut(to: "ls", arguments: ["-a"], at: "~").stdout
+        let homeContents = try await shellOut(to: "ls", arguments: ["-a"], at: "~", logger: logger).stdout
         XCTAssertFalse(homeContents.isEmpty)
     }
 
     func testThrowingError() async {
-        do {
-            try await shellOut(to: .bash(arguments: ["cd notADirectory"]))
-            XCTFail("Expected expression to throw")
-        } catch let error as ShellOutError {
+        await XCTAssertThrowsErrorAsync(try await shellOut(to: .bash(arguments: ["cd notADirectory"]), logger: logger)) {
+            guard let error = $0 as? ShellOutError else {
+                return XCTFail("Expected ShellOutError, got \(String(reflecting: $0))")
+            }
             XCTAssertTrue(error.message.contains("notADirectory"))
             XCTAssertTrue(error.output.isEmpty)
             XCTAssertTrue(error.terminationStatus != 0)
-        } catch {
-            XCTFail("Invalid error type: \(error)")
         }
     }
 
@@ -131,6 +140,7 @@ class ShellOutTests: XCTestCase {
         let pipe = Pipe()
         let output = try await shellOut(to: "echo",
                                   arguments: ["Hello"],
+                                  logger: logger,
                                   outputHandle: pipe.fileHandleForWriting).stdout
         let capturedData = pipe.fileHandleForReading.readDataToEndOfFile()
         XCTAssertEqual(output, "Hello")
@@ -140,72 +150,75 @@ class ShellOutTests: XCTestCase {
     func testCapturingErrorWithHandle() async throws {
         let pipe = Pipe()
 
-        do {
-            try await shellOut(to: .bash(arguments: ["cd notADirectory"]),
-                               errorHandle: pipe.fileHandleForWriting)
-            XCTFail("Expected expression to throw")
-        } catch let error as ShellOutError {
+        await XCTAssertThrowsErrorAsync(
+            try await shellOut(to: .bash(arguments: ["cd notADirectory"]), logger: logger, errorHandle: pipe.fileHandleForWriting)
+        ) {
+            guard let error = $0 as? ShellOutError else {
+                return XCTFail("Expected ShellOutError, got \(String(reflecting: $0))")
+            }
             XCTAssertTrue(error.message.contains("notADirectory"))
             XCTAssertTrue(error.output.isEmpty)
             XCTAssertTrue(error.terminationStatus != 0)
 
             let capturedData = pipe.fileHandleForReading.readDataToEndOfFile()
-            XCTAssertEqual(error.message + "\n", String(data: capturedData, encoding: .utf8))
-        } catch {
-            XCTFail("Invalid error type: \(error)")
+            XCTAssertEqual(error.message + "\n", String(decoding: capturedData, as: UTF8.self))
         }
     }
 
     func testGitCommands() async throws {
         // Setup & clear state
-        let tempFolderPath = NSTemporaryDirectory()
-        try await shellOut(to: "rm",
-                     arguments: ["-rf", "GitTestOrigin"],
-                     at: tempFolderPath, logger: .init(label: "test"))
-        try await shellOut(to: "rm",
-                     arguments: ["-rf", "GitTestClone"],
-                     at: tempFolderPath, logger: .init(label: "test"))
+        try await shellOut(
+            to: "rm",
+            arguments: ["-rf", "GitTestOrigin"],
+            at: tempUrl.path,
+            logger: logger
+        )
+        try await shellOut(
+            to: "rm",
+            arguments: ["-rf", "GitTestClone"],
+            at: tempUrl.path,
+            logger: logger
+        )
 
         // Create a origin repository and make a commit with a file
-        let originPath = tempFolderPath + "/GitTestOrigin"
-        try await shellOut(to: .createFolder(named: "GitTestOrigin"), at: tempFolderPath, logger: .init(label: "test"))
-        try await shellOut(to: .gitInit(), at: originPath, logger: .init(label: "test"))
-        try await shellOut(to: .createFile(named: "Test", contents: "Hello world"), at: originPath, logger: .init(label: "test"))
-        try await shellOut(to: "git", arguments: ["add", "."], at: originPath, logger: .init(label: "test"))
-        try await shellOut(to: .gitCommit(message: "Commit"), at: originPath, logger: .init(label: "test"))
+        let originDir = tempUrl(directory: "GitTestOrigin")
+        try await shellOut(to: .createFolder(named: "GitTestOrigin"), at: tempUrl.path, logger: logger)
+        try await shellOut(to: .gitInit(), at: originDir.path, logger: logger)
+        try await shellOut(to: .createFile(named: "Test", contents: "Hello world"), at: originDir.path, logger: logger)
+        try await shellOut(to: "git", arguments: ["add", "."], at: originDir.path, logger: logger)
+        try await shellOut(to: .gitCommit(message: "Commit"), at: originDir.path, logger: logger)
 
         // Clone to a new repository and read the file
-        let clonePath = tempFolderPath + "/GitTestClone"
-        let cloneURL = URL(fileURLWithPath: originPath)
-        try await shellOut(to: .gitClone(url: cloneURL, to: "GitTestClone"), at: tempFolderPath, logger: .init(label: "test"))
+        let cloneDir = tempUrl(directory: "GitTestClone")
+        try await shellOut(to: .gitClone(url: originDir, to: "GitTestClone"), at: tempUrl.path, logger: logger)
 
-        let filePath = clonePath + "/Test"
-        await XCTAssertEqualAsync(try await shellOut(to: .readFile(at: filePath), logger: .init(label: "test")).stdout, "Hello world")
+        let fileUrl = cloneDir.appendingPathComponent("Test", isDirectory: false)
+        await XCTAssertEqualAsync(try await shellOut(to: .readFile(at: fileUrl.path), logger: logger).stdout, "Hello world")
 
         // Make a new commit in the origin repository
-        try await shellOut(to: .createFile(named: "Test", contents: "Hello again"), at: originPath, logger: .init(label: "test"))
-        try await shellOut(to: .gitCommit(message: "Commit"), at: originPath, logger: .init(label: "test"))
+        try await shellOut(to: .createFile(named: "Test", contents: "Hello again"), at: originDir.path, logger: logger)
+        try await shellOut(to: .gitCommit(message: "Commit"), at: originDir.path, logger: logger)
 
         // Pull the commit in the clone repository and read the file again
-        try await shellOut(to: .gitPull(), at: clonePath)
-        await XCTAssertEqualAsync(try await shellOut(to: .readFile(at: filePath), logger: .init(label: "test")).stdout, "Hello again")
+        try await shellOut(to: .gitPull(), at: cloneDir.path, logger: logger)
+        await XCTAssertEqualAsync(try await shellOut(to: .readFile(at: fileUrl.path), logger: logger).stdout, "Hello again")
     }
 
     func testBash() async throws {
         // Without explicit -c parameter
-        await XCTAssertEqualAsync(try await shellOut(to: .bash(arguments: ["echo", "foo"])).stdout,
+        await XCTAssertEqualAsync(try await shellOut(to: .bash(arguments: ["echo", "foo"]), logger: logger).stdout,
                                   "foo")
         // With explicit -c parameter
-        await XCTAssertEqualAsync(try await shellOut(to: .bash(arguments: ["-c", "echo", "foo"])).stdout,
+        await XCTAssertEqualAsync(try await shellOut(to: .bash(arguments: ["-c", "echo", "foo"]), logger: logger).stdout,
                                   "foo")
     }
 
     func testBashArgumentQuoting() async throws {
         await XCTAssertEqualAsync(try await shellOut(to: .bash(arguments: ["echo",
-                                                                           "foo ; echo bar".quoted])).stdout,
+                                                                           "foo ; echo bar".quoted]), logger: logger).stdout,
                                   "foo ; echo bar")
         await XCTAssertEqualAsync(try await shellOut(to: .bash(arguments: ["echo",
-                                                                           "foo ; echo bar".verbatim])).stdout,
+                                                                           "foo ; echo bar".verbatim]), logger: logger).stdout,
                                   "foo\nbar")
     }
 
@@ -221,47 +234,45 @@ class ShellOutTests: XCTestCase {
 
     func test_git_tags() async throws {
         // setup
-        let tempDir = NSTemporaryDirectory().appending("test_stress_\(UUID())")
-        defer {
-            try? Foundation.FileManager.default.removeItem(atPath: tempDir)
-        }
+        let tempDir = tempUrl(directory: "test_stress_\(UUID())")
         let sampleGitRepoName = "ErrNo"
-        let sampleGitRepoZipFile = fixturesDirectory()
-            .appendingPathComponent("\(sampleGitRepoName).zip").path
-        let path = "\(tempDir)/\(sampleGitRepoName)"
-        try! Foundation.FileManager.default.createDirectory(atPath: tempDir, withIntermediateDirectories: false, attributes: nil)
-        try! await ShellOut.shellOut(to: .init(command: "unzip", arguments: [sampleGitRepoZipFile]), at: tempDir)
+        let sampleGitRepoZipFile = fixturesDirectory().appendingPathComponent(sampleGitRepoName, isDirectory: false).appendingPathExtension("zip").path
+        let sampleGitRepoDir = tempDir.appendingPathComponent(sampleGitRepoName, isDirectory: true)
+
+        try Foundation.FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: false, attributes: nil)
+        try await ShellOut.shellOut(to: .init(command: "unzip", arguments: [sampleGitRepoZipFile]), at: tempDir.path, logger: logger)
 
         // MUT
-        await XCTAssertEqualAsync(try await shellOut(to: ShellOutCommand(command: "git", arguments: ["tag"]),
-                                    at: path).stdout, """
-                0.2.0
-                0.2.1
-                0.2.2
-                0.2.3
-                0.2.4
-                0.2.5
-                0.3.0
-                0.4.0
-                0.4.1
-                0.4.2
-                0.5.0
-                0.5.1
-                0.5.2
-                v0.0.1
-                v0.0.2
-                v0.0.3
-                v0.0.4
-                v0.0.5
-                v0.1.0
-                """)
+        await XCTAssertEqualAsync(
+            try await shellOut(to: ShellOutCommand(command: "git", arguments: ["tag"]), at: sampleGitRepoDir.path, logger: logger).stdout,
+            """
+            0.2.0
+            0.2.1
+            0.2.2
+            0.2.3
+            0.2.4
+            0.2.5
+            0.3.0
+            0.4.0
+            0.4.1
+            0.4.2
+            0.5.0
+            0.5.1
+            0.5.2
+            v0.0.1
+            v0.0.2
+            v0.0.3
+            v0.0.4
+            v0.0.5
+            v0.1.0
+            """)
     }
 }
 
 extension ShellOutTests {
-    func fixturesDirectory(path: String = #file) -> URL {
-        let url = URL(fileURLWithPath: path)
+    func fixturesDirectory(path: String = #filePath) -> URL {
+        let url = URL(fileURLWithPath: path, isDirectory: false)
         let testsDir = url.deletingLastPathComponent()
-        return testsDir.appendingPathComponent("Fixtures")
+        return testsDir.appendingPathComponent("Fixtures", isDirectory: true)
     }
 }

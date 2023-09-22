@@ -1,26 +1,23 @@
 import Foundation
 
-
 public enum Argument: Equatable {
     case quoted(QuotedString)
     case verbatim(String)
 
-    public init(quoted string: String) {
-        self = .quoted(.init(string))
+    public init(quoted string: some StringProtocol) {
+        self = .quoted(.init(.init(string)))
     }
 
-    public init(verbatim string: String) {
-        self = .verbatim(string)
+    public init(verbatim string: some StringProtocol) {
+        self = .verbatim(.init(string))
     }
 }
-
 
 extension Argument: ExpressibleByStringLiteral {
     public init(stringLiteral value: StringLiteralType) {
         self = .quoted(.init(value))
     }
 }
-
 
 extension Argument: CustomStringConvertible {
     public var description: String {
@@ -33,19 +30,17 @@ extension Argument: CustomStringConvertible {
     }
 }
 
-
 extension Argument {
     public static func url(_ url: URL) -> Self { url.absoluteString.verbatim }
 }
 
 
-extension String {
+extension StringProtocol {
     public var quoted: Argument { .init(quoted: self) }
     public var verbatim: Argument { .init(verbatim: self) }
 }
 
-
-extension Array where Element == String {
+extension Sequence<StringProtocol> {
     public var quoted: [Argument] { map(\.quoted) }
     public var verbatim: [Argument] { map(\.verbatim) }
 }

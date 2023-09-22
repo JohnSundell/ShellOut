@@ -35,12 +35,6 @@ extension ShellOutError: LocalizedError {
 
 private extension Data {
     func shellOutput() -> String {
-        let output = String(decoding: self, as: UTF8.self)
-
-        guard !output.hasSuffix("\n") else {
-            return String(output.dropLast())
-        }
-
-        return output
+        .init(String(decoding: self, as: UTF8.self).trimmingSuffix(while: { $0.isNewline }))
     }
 }

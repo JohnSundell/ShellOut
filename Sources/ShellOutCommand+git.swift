@@ -65,7 +65,7 @@ public extension ShellOutCommand {
     /// Run a git submodule update
     static func gitSubmoduleUpdate(initializeIfNeeded: Bool = true, recursive: Bool = true, allowingPrompt: Bool = true, quiet: Bool = true) -> ShellOutCommand {
         var command = git(allowingPrompt: allowingPrompt)
-            .appending(arguments: ["submodule update"])
+            .appending(arguments: ["submodule", "update"])
 
         if initializeIfNeeded {
             command.append(argument: "--init")

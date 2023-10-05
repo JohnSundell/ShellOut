@@ -1,5 +1,5 @@
 /// Structure used to pre-define commands for use with ShellOut
-public struct ShellOutCommand {
+public struct ShellOutCommand: Equatable {
     /// The string that makes up the command that should be run on the command line
     public var command: String
 

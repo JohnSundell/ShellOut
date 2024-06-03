@@ -438,6 +438,10 @@ private extension Process {
         #if !os(Linux)
         outputPipe.fileHandleForReading.readabilityHandler = nil
         errorPipe.fileHandleForReading.readabilityHandler = nil
+        if #available(macOS 10.15, *) {
+            try outputPipe.fileHandleForReading.close()
+            try errorPipe.fileHandleForReading.close()
+        }
         #endif
 
         // Block until all writes have occurred to outputData and errorData,

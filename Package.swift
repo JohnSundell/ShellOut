@@ -17,7 +17,7 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/SwiftPackageIndex/ShellQuote", from: "1.0.2"),
         .package(url: "https://github.com/apple/swift-log.git", from: "1.0.0"),
-        .package(url: "https://github.com/apple/swift-tools-support-core.git", from: "0.5.2"),
+        .package(url: "https://github.com/swiftlang/swift-tools-support-core.git", from: "0.5.2"),
         .package(url: "https://github.com/apple/swift-algorithms.git", from: "1.0.0"),
     ],
     targets: [
